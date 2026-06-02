@@ -148,8 +148,20 @@
 
                 <div class="mt-8 text-center glass-panel p-5 rounded-3xl w-full max-w-sm">
                     <div class="flex justify-between items-center mb-2 px-1">
-                        <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Código (Local e Internet)</p>
-                        <span class="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-md font-mono font-bold tracking-wider">6 DÍGITOS</span>
+                        <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Código</p>
+                        <div class="flex items-center gap-1.5">
+                            <!-- NUEVO CRONÓMETRO CIRCULAR -->
+                            <div class="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-1 rounded-md border border-white/5" title="El código se renueva por seguridad">
+                                <div class="relative w-3.5 h-3.5">
+                                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" class="text-zinc-700"></circle>
+                                        <circle id="timer-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="62.83" stroke-dashoffset="0" class="text-primary transition-all duration-1000 ease-linear"></circle>
+                                    </svg>
+                                </div>
+                                <span id="code-timer-text" class="text-[10px] text-primary font-mono font-bold tracking-wider w-5 text-center">60s</span>
+                            </div>
+                            <span class="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-md font-mono font-bold tracking-wider">6 DÍGITOS</span>
+                        </div>
                     </div>
                     <div class="flex items-center justify-center gap-3">
                         <div id="my-code" class="text-4xl font-black tracking-[0.2em] text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">------</div>
@@ -157,7 +169,7 @@
                             <i data-lucide="copy" class="w-5 h-5"></i>
                         </button>
                     </div>
-                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código. Funciona tanto si están en el mismo WiFi como si están a miles de kilómetros.</p>
+                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código. Se renueva automáticamente para mayor seguridad.</p>
                 </div>
             </div>
 
@@ -381,8 +393,8 @@
         // 2. INICIALIZAR VARIABLES Y UI
         if (window.lucide) window.lucide.createIcons();
         const PREFIX = "ecwebpro-";
-        const myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const myPeerId = PREFIX + myRawCode;
+        let myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
+        let myPeerId = PREFIX + myRawCode;
         
         let peer = null;
         let activeConnection = null;
@@ -684,6 +696,78 @@
                 });
             }
         })();
+
+        // --- ROTACIÓN DE CÓDIGO (ESTILO AUTENTICADOR) ---
+        const CODE_VALID_TIME = 60; // 60 segundos
+        let codeTimeLeft = CODE_VALID_TIME;
+        let codeTimerInterval = null;
+
+        function startCodeTimer() {
+            clearInterval(codeTimerInterval);
+            codeTimeLeft = CODE_VALID_TIME;
+            
+            const circle = document.getElementById('timer-circle');
+            const text = document.getElementById('code-timer-text');
+            
+            if (!circle || !text) return;
+
+            // Reiniciar UI
+            circle.classList.replace('text-red-500', 'text-primary');
+            text.classList.replace('text-red-500', 'text-primary');
+            circle.style.strokeDashoffset = '0';
+            text.innerText = codeTimeLeft + 's';
+            
+            codeTimerInterval = setInterval(() => {
+                codeTimeLeft--;
+                text.innerText = codeTimeLeft + 's';
+                
+                // Calcular el progreso del círculo (circunferencia de 62.83)
+                const offset = 62.83 - (62.83 * (codeTimeLeft / CODE_VALID_TIME));
+                circle.style.strokeDashoffset = offset;
+                
+                // Cambiar a rojo en los últimos 10 segundos
+                if (codeTimeLeft === 10) {
+                    circle.classList.replace('text-primary', 'text-red-500');
+                    text.classList.replace('text-primary', 'text-red-500');
+                }
+                
+                // Renovar código cuando llegue a 0
+                if (codeTimeLeft <= 0) {
+                    refreshMyCode();
+                }
+            }, 1000);
+        }
+
+        function refreshMyCode() {
+            // Renovar variables
+            myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
+            myPeerId = PREFIX + myRawCode;
+            
+            // UI
+            document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
+            if (window.QRious) {
+                new window.QRious({
+                    element: document.getElementById('qr-canvas'),
+                    value: window.location.href.split('?')[0] + `?connect=${myRawCode}`,
+                    size: 200, background: '#ffffff', foreground: '#09090b', level: 'M'
+                });
+            }
+
+            // Gestionar PeerJS para no cortar transferencias activas
+            if (peer) {
+                if (!activeConnection || !activeConnection.open) {
+                    peer.destroy();
+                } else {
+                    peer.disconnect(); // Desconecta del servidor de descubrimiento pero mantiene la transferencia P2P viva
+                }
+            }
+            
+            initPeer();
+            startCodeTimer();
+        }
+
+        // Iniciar cronómetro al cargar la página
+        startCodeTimer();
     </script>
 </body>
 </html>
