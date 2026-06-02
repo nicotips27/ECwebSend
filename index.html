@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECwebSend - Transferencia Local</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Animaciones personalizadas */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+        }
+        .radar-ring {
+            position: absolute;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            animation: radar 2s infinite linear;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes radar {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 200px; height: 200px; opacity: 0; }
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Paleta de colores forzada a azules y negros */
+        body {
+            background-color: #050a15; /* Negro profundo azulado */
+            color: #e2e8f0;
+        }
+        .bg-panel {
+            background-color: #0b1325; /* Panel oscuro */
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
+
+    <!-- PANTALLA DE CARGA (Splash Screen) -->
+    <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-500 bg-[#050a15]">
+        <div class="relative w-40 h-40 mb-8 rounded-2xl overflow-hidden" style="animation: pulse-glow 2s infinite;">
+            <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" 
+                 alt="Logo" 
+                 class="w-full h-full object-cover">
+        </div>
+        <h1 class="text-3xl font-bold text-blue-500 tracking-wider">ECWEBSEND</h1>
+        <p class="text-blue-300/50 mt-2 text-sm">Conectando a la Intra-net...</p>
+        
+        <div class="mt-10 w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div class="h-full bg-blue-500 animate-[pulse_1.5s_ease-in-out_infinite] w-1/2"></div>
+        </div>
+    </div>
+
+    <!-- CABECERA -->
+    <header class="bg-panel shadow-md shadow-blue-900/10 border-b border-blue-900/30 p-4 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg overflow-hidden border border-blue-500/30">
+                <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" 
+                     alt="Logo Mini" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <h2 class="font-bold text-lg text-blue-50">ECwebSend</h2>
+                <p class="text-xs text-blue-400" id="my-device-name">Mi Dispositivo</p>
+            </div>
+        </div>
+        <button class="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 rounded-full transition-colors">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 overflow-y-auto hide-scrollbar relative">
+        
+        <!-- PESTAÑA: RECIBIR -->
+        <section id="tab-receive" class="absolute inset-0 p-6 flex flex-col items-center justify-center transition-transform duration-300 translate-x-0">
+            <div class="relative w-48 h-48 mb-8 flex items-center justify-center">
+                <div class="radar-ring" style="animation-delay: 0s;"></div>
+                <div class="radar-ring" style="animation-delay: 0.6s;"></div>
+                <div class="radar-ring" style="animation-delay: 1.2s;"></div>
+                <div class="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center z-10 shadow-lg shadow-blue-500/50">
+                    <i data-lucide="smartphone" class="w-10 h-10 text-white"></i>
+                </div>
+            </div>
+            <h3 class="text-2xl font-bold mb-2 text-blue-50 text-center">Listo para recibir</h3>
+            <p class="text-blue-200/60 text-center text-sm mb-8 max-w-xs">
+                Asegúrate de que el otro dispositivo esté en la misma red y tenga ECwebSend abierto.
+            </p>
+            
+            <div class="w-full max-w-md bg-panel rounded-xl border border-blue-900/50 p-4">
+                <h4 class="text-sm font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Archivos Recibidos
+                </h4>
+                <ul id="received-files-list" class="space-y-2 empty:hidden">
+                    <!-- Los archivos recibidos aparecerán aquí -->
+                </ul>
+                <div id="no-files-msg" class="text-center text-xs text-gray-500 py-4 italic">
+                    No se han recibido archivos aún.
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: ENVIAR -->
+        <section id="tab-send" class="absolute inset-0 p-6 flex flex-col transition-transform duration-300 translate-x-full hidden">
+            
+            <!-- Selección de archivos -->
+            <div class="bg-panel rounded-xl border border-blue-900/50 p-4 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-semibold text-blue-400">Archivos seleccionados</h4>
+                    <span class="text-xs text-blue-200/50 bg-blue-900/20 px-2 py-1 rounded-md" id="file-count">0 archivos</span>
+                </div>
+                
+                <input type="file" id="file-input" class="hidden" multiple>
+                <button onclick="document.getElementById('file-input').click()" class="w-full py-4 border-2 border-dashed border-blue-500/30 rounded-lg text-blue-300 hover:bg-blue-900/20 hover:border-blue-500/60 transition-all flex flex-col items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-8 h-8"></i>
+                    <span>Tocar para seleccionar archivos</span>
+                </button>
+                
+                <ul id="selected-files-list" class="mt-4 space-y-2 max-h-32 overflow-y-auto hide-scrollbar"></ul>
+            </div>
+
+            <!-- Dispositivos Cercanos -->
+            <h3 class="text-lg font-bold mb-4 text-blue-50 flex items-center gap-2">
+                <i data-lucide="radio" class="w-5 h-5 text-blue-400"></i> Dispositivos cercanos
+            </h3>
+            
+            <div id="devices-list" class="grid grid-cols-2 gap-4">
+                <div class="col-span-2 text-center text-xs text-blue-200/50 py-8 italic flex flex-col items-center">
+                    <i data-lucide="loader-2" class="w-6 h-6 animate-spin mb-2"></i>
+                    Buscando dispositivos...<br>
+                    (Abre otra pestaña para probar)
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA: AJUSTES -->
+        <section id="tab-settings" class="absolute inset-0 p-6 flex flex-col transition-transform duration-300 translate-x-full hidden">
+            <h3 class="text-2xl font-bold mb-6 text-blue-50">Ajustes</h3>
+            <div class="space-y-4">
+                <div class="bg-panel rounded-xl border border-blue-900/50 p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-medium text-blue-100">Nombre del dispositivo</p>
+                        <p class="text-xs text-blue-400" id="setting-device-name">Cargando...</p>
+                    </div>
+                    <button class="text-blue-500 hover:text-blue-300"><i data-lucide="edit-2" class="w-5 h-5"></i></button>
+                </div>
+                <div class="bg-panel rounded-xl border border-blue-900/50 p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-medium text-blue-100">Tema</p>
+                        <p class="text-xs text-blue-400">Oscuro (Azul/Negro)</p>
+                    </div>
+                    <i data-lucide="moon" class="w-5 h-5 text-blue-500"></i>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- NAVEGACIÓN INFERIOR (Tipo LocalSend) -->
+    <nav class="bg-panel border-t border-blue-900/30 px-6 py-3 shrink-0">
+        <ul class="flex justify-around items-center">
+            <li>
+                <button onclick="switchTab('receive')" id="nav-receive" class="flex flex-col items-center gap-1 p-2 text-blue-500 transition-colors">
+                    <i data-lucide="arrow-down-to-line" class="w-6 h-6"></i>
+                    <span class="text-[10px] font-medium">Recibir</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="switchTab('send')" id="nav-send" class="flex flex-col items-center gap-1 p-2 text-blue-900 hover:text-blue-400 transition-colors">
+                    <i data-lucide="send" class="w-6 h-6"></i>
+                    <span class="text-[10px] font-medium">Enviar</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 p-2 text-blue-900 hover:text-blue-400 transition-colors">
+                    <i data-lucide="settings" class="w-6 h-6"></i>
+                    <span class="text-[10px] font-medium">Ajustes</span>
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- MODAL DE TRANSFERENCIA -->
+    <div id="transfer-modal" class="fixed inset-0 bg-black/80 z-40 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-panel border border-blue-500/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl shadow-blue-900/50 flex flex-col items-center text-center">
+            <h3 class="text-lg font-bold text-white mb-2" id="transfer-title">Enviando...</h3>
+            <p class="text-sm text-blue-200 mb-6" id="transfer-filename">archivo.jpg</p>
+            
+            <div class="relative w-32 h-32 mb-6">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#0f172a" stroke-width="8"></circle>
+                    <circle id="progress-circle" cx="50" cy="50" r="45" fill="none" stroke="#3b82f6" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283" class="transition-all duration-300"></circle>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="progress-text" class="text-xl font-bold text-blue-400">0%</span>
+                </div>
+            </div>
+            
+            <button onclick="closeTransferModal()" id="btn-close-transfer" class="hidden px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-medium transition-colors">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT -->
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // 1. GESTIÓN DE LA INTERFAZ
+        
+        // Quitar Splash Screen
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => splash.remove(), 500);
+        }, 2000);
+
+        // Nombres aleatorios de frutas/colores tipo LocalSend
+        const adjectives = ['Azul', 'Rápido', 'Oscuro', 'Místico', 'Solar', 'Lunar', 'Estelar'];
+        const nouns = ['Móvil', 'PC', 'Tablet', 'Nexus', 'Pixel', 'Mac', 'Pad'];
+        const myId = Math.random().toString(36).substring(2, 9);
+        const myName = `${adjectives[Math.floor(Math.random()*adjectives.length)]} ${nouns[Math.floor(Math.random()*nouns.length)]}`;
+        
+        document.getElementById('my-device-name').innerText = myName;
+        document.getElementById('setting-device-name').innerText = myName;
+
+        // Pestañas
+        const tabs = ['receive', 'send', 'settings'];
+        function switchTab(activeTab) {
+            tabs.forEach(tab => {
+                const section = document.getElementById(`tab-${tab}`);
+                const navBtn = document.getElementById(`nav-${tab}`);
+                
+                if (tab === activeTab) {
+                    section.classList.remove('hidden', 'translate-x-full', '-translate-x-full');
+                    section.classList.add('translate-x-0');
+                    navBtn.classList.replace('text-blue-900', 'text-blue-500');
+                } else {
+                    const activeIndex = tabs.indexOf(activeTab);
+                    const currIndex = tabs.indexOf(tab);
+                    section.classList.add('hidden');
+                    section.classList.remove('translate-x-0');
+                    if (currIndex < activeIndex) {
+                        section.classList.add('-translate-x-full');
+                    } else {
+                        section.classList.add('translate-x-full');
+                    }
+                    navBtn.classList.replace('text-blue-500', 'text-blue-900');
+                }
+            });
+        }
+
+        // 2. GESTIÓN DE ARCHIVOS (UI)
+        let selectedFiles = [];
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files);
+            renderSelectedFiles();
+        });
+
+        function renderSelectedFiles() {
+            const list = document.getElementById('selected-files-list');
+            document.getElementById('file-count').innerText = `${selectedFiles.length} archivos`;
+            list.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = "flex justify-between items-center bg-gray-900/50 p-2 rounded-lg text-sm border border-gray-800";
+                
+                const size = (file.size / (1024 * 1024)).toFixed(2);
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="p-2 bg-blue-900/30 rounded text-blue-400 shrink-0">
+                            <i data-lucide="file" class="w-4 h-4"></i>
+                        </div>
+                        <div class="truncate">
+                            <p class="text-blue-100 truncate">${file.name}</p>
+                            <p class="text-xs text-blue-500/70">${size} MB</p>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" class="p-1 text-red-400 hover:bg-red-400/20 rounded shrink-0">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+            lucide.createIcons();
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderSelectedFiles();
+        }
+
+        // 3. LÓGICA DE DESCUBRIMIENTO PEER-TO-PEER (Vía BroadcastChannel)
+        const signaling = new BroadcastChannel('websend-signaling');
+        const knownDevices = {};
+        let peerConnection;
+        let dataChannel;
+
+        // Anunciar mi presencia cada 3 segundos
+        setInterval(() => {
+            signaling.postMessage({ type: 'announce', id: myId, name: myName });
+        }, 3000);
+
+        // Escuchar a otros
+        signaling.onmessage = async (e) => {
+            const data = e.data;
+            
+            if (data.type === 'announce' && data.id !== myId) {
+                if (!knownDevices[data.id]) {
+                    knownDevices[data.id] = { name: data.name, lastSeen: Date.now() };
+                    renderDevices();
+                } else {
+                    knownDevices[data.id].lastSeen = Date.now();
+                }
+            }
+            
+            // WebRTC Signaling Reacciones
+            if (data.target === myId) {
+                if (data.type === 'offer') {
+                    handleOffer(data);
+                } else if (data.type === 'answer') {
+                    handleAnswer(data);
+                } else if (data.type === 'candidate') {
+                    handleCandidate(data);
+                }
+            }
+        };
+
+        function renderDevices() {
+            const list = document.getElementById('devices-list');
+            list.innerHTML = '';
+            
+            const devices = Object.keys(knownDevices);
+            if (devices.length === 0) return;
+
+            devices.forEach(id => {
+                const dev = knownDevices[id];
+                const div = document.createElement('div');
+                div.className = "bg-panel border border-blue-500/30 p-4 rounded-xl flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-900/20 hover:border-blue-500 transition-all shadow-lg shadow-blue-900/10";
+                div.onclick = () => initiateTransfer(id);
+                
+                div.innerHTML = `
+                    <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center border border-blue-900">
+                        <i data-lucide="laptop" class="w-6 h-6 text-blue-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-blue-100 text-center">${dev.name}</p>
+                    <p class="text-[10px] text-blue-500/50">Tocar para enviar</p>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        // Limpiar dispositivos inactivos
+        setInterval(() => {
+            const now = Date.now();
+            let changed = false;
+            for (let id in knownDevices) {
+                if (now - knownDevices[id].lastSeen > 10000) {
+                    delete knownDevices[id];
+                    changed = true;
+                }
+            }
+            if (changed) renderDevices();
+        }, 5000);
+
+
+        // 4. WEBRTC TRANSFERENCIA DE ARCHIVOS
+        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        function createPeerConnection(targetId) {
+            const pc = new RTCPeerConnection(rtcConfig);
+            
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    signaling.postMessage({ type: 'candidate', target: targetId, source: myId, candidate: event.candidate });
+                }
+            };
+
+            // Recibir DataChannel
+            pc.ondatachannel = (event) => {
+                setupDataChannel(event.channel);
+            };
+
+            return pc;
+        }
+
+        async function initiateTransfer(targetId) {
+            if (selectedFiles.length === 0) {
+                alert("Por favor, selecciona al menos un archivo primero.");
+                return;
+            }
+
+            peerConnection = createPeerConnection(targetId);
+            
+            // Crear DataChannel para enviar
+            dataChannel = peerConnection.createDataChannel('fileTransfer');
+            dataChannel.binaryType = 'arraybuffer';
+            setupDataChannel(dataChannel);
+
+            // Crear y enviar oferta
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            signaling.postMessage({ type: 'offer', target: targetId, source: myId, offer: offer });
+        }
+
+        async function handleOffer(data) {
+            // Cambio a pestaña de recibir automáticamente
+            switchTab('receive');
+            
+            peerConnection = createPeerConnection(data.source);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            signaling.postMessage({ type: 'answer', target: data.source, source: myId, answer: answer });
+        }
+
+        async function handleAnswer(data) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+
+        async function handleCandidate(data) {
+            if (peerConnection) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        }
+
+        // LÓGICA DEL CANAL DE DATOS (Envío y Recepción)
+        let incomingFileInfo = null;
+        let incomingFileData = [];
+        let incomingBytesReceived = 0;
+
+        function setupDataChannel(channel) {
+            channel.onopen = () => {
+                if (selectedFiles.length > 0 && channel.readyState === 'open') {
+                    sendNextFile(channel);
+                }
+            };
+
+            channel.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'header') {
+                        incomingFileInfo = msg;
+                        incomingFileData = [];
+                        incomingBytesReceived = 0;
+                        showTransferModal(msg.name, "Recibiendo...");
+                    } else if (msg.type === 'eof') {
+                        // Archivo completo recibido
+                        const blob = new Blob(incomingFileData, { type: incomingFileInfo.mime });
+                        saveReceivedFile(blob, incomingFileInfo.name);
+                        updateModalProgress(100);
+                        document.getElementById('btn-close-transfer').classList.remove('hidden');
+                        document.getElementById('transfer-title').innerText = "¡Completado!";
+                    }
+                } else {
+                    // Recibiendo fragmento binario
+                    incomingFileData.push(event.data);
+                    incomingBytesReceived += event.data.byteLength;
+                    if (incomingFileInfo) {
+                        const percent = (incomingBytesReceived / incomingFileInfo.size) * 100;
+                        updateModalProgress(percent);
+                    }
+                }
+            };
+        }
+
+        function sendNextFile(channel) {
+            if (selectedFiles.length === 0) return;
+            
+            const file = selectedFiles.shift(); // Tomar el primero
+            renderSelectedFiles();
+            
+            showTransferModal(file.name, "Enviando...");
+            
+            // Enviar Metadatos
+            channel.send(JSON.stringify({
+                type: 'header', name: file.name, size: file.size, mime: file.type
+            }));
+
+            // Enviar fragmentos (Chunks)
+            const chunkSize = 16384; // 16KB por fragmento
+            let offset = 0;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                if (channel.readyState !== 'open') return;
+                
+                channel.send(e.target.result);
+                offset += e.target.result.byteLength;
+                
+                const percent = (offset / file.size) * 100;
+                updateModalProgress(percent);
+
+                if (offset < file.size) {
+                    // Control de flujo básico: esperar si el buffer está lleno
+                    if (channel.bufferedAmount > chunkSize * 64) {
+                        setTimeout(readSlice, 50);
+                    } else {
+                        readSlice();
+                    }
+                } else {
+                    channel.send(JSON.stringify({ type: 'eof' }));
+                    document.getElementById('btn-close-transfer').classList.remove('hidden');
+                    document.getElementById('transfer-title').innerText = "¡Enviado!";
+                }
+            };
+
+            const readSlice = () => {
+                const slice = file.slice(offset, offset + chunkSize);
+                reader.readAsArrayBuffer(slice);
+            };
+
+            readSlice();
+        }
+
+        // 5. INTERFAZ MODAL Y GUARDADO
+        function showTransferModal(filename, title) {
+            document.getElementById('transfer-modal').classList.remove('hidden');
+            document.getElementById('transfer-filename').innerText = filename;
+            document.getElementById('transfer-title').innerText = title;
+            document.getElementById('btn-close-transfer').classList.add('hidden');
+            updateModalProgress(0);
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transfer-modal').classList.add('hidden');
+        }
+
+        function updateModalProgress(percent) {
+            const p = Math.min(100, Math.max(0, percent));
+            document.getElementById('progress-text').innerText = Math.round(p) + '%';
+            const offset = 283 - (283 * (p / 100));
+            document.getElementById('progress-circle').style.strokeDashoffset = offset;
+        }
+
+        function saveReceivedFile(blob, filename) {
+            document.getElementById('no-files-msg').style.display = 'none';
+            const url = URL.createObjectURL(blob);
+            const list = document.getElementById('received-files-list');
+            const li = document.createElement('li');
+            li.className = "flex justify-between items-center bg-gray-900/50 p-3 rounded-lg border border-blue-900/50";
+            
+            const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+            
+            li.innerHTML = `
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="p-2 bg-blue-600 rounded-full text-white shrink-0">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    </div>
+                    <div class="truncate">
+                        <p class="text-blue-50 text-sm font-medium truncate">${filename}</p>
+                        <p class="text-xs text-blue-400">${sizeMB} MB</p>
+                    </div>
+                </div>
+                <a href="${url}" download="${filename}" class="p-2 bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 rounded-lg transition-colors shrink-0">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                </a>
+            `;
+            list.prepend(li);
+            lucide.createIcons();
+            
+            // Auto-descargar
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+        }
+    </script>
+</body>
+</html>
+```
