@@ -69,20 +69,41 @@
         input[type="number"]::-webkit-outer-spin-button { 
             -webkit-appearance: none; margin: 0; 
         }
+
+        /* =========================================
+           LOADER ESTALINGRADO (Adaptado para Tailwind)
+           ========================================= */
+        .loader-logo {
+            width: 110px; height: 110px; border-radius: 30%;
+            border: 2px solid transparent; margin-bottom: 25px;
+            background: linear-gradient(#09090b, #09090b) padding-box, 
+                        linear-gradient(135deg, #0ea5e9, #6366f1) border-box;
+            animation: pulse-glow 2s infinite alternate; object-fit: cover;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(14, 165, 233, 0.2); transform: scale(0.98); }
+            100% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.6); transform: scale(1.02); }
+        }
+        .loading-bar {
+            width: 250px; height: 4px; border-radius: 10px; background: rgba(255,255,255,0.1);
+            overflow: hidden; margin-bottom: 10px; position: relative;
+        }
+        #loading-progress-bar {
+            height: 100%; width: 0%; background: #0ea5e9;
+            box-shadow: 0 0 10px #0ea5e9; transition: width 0.1s linear;
+        }
+        #loading-percent { color: #0ea5e9; font-size: 12px; font-weight: 600; font-family: monospace; }
     </style>
 </head>
 <body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
 
-    <!-- SPLASH SCREEN -->
+    <!-- SPLASH SCREEN ESTALINGRADO -->
     <div id="splash" class="fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center transition-opacity duration-700">
-        <div class="relative w-24 h-24 mb-6">
-            <div class="absolute inset-0 border-4 border-primary/30 rounded-full animate-ping-slow"></div>
-            <div class="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(14,165,233,0.5)]">
-                <i data-lucide="zap" class="w-10 h-10 text-white animate-pulse"></i>
-            </div>
-        </div>
-        <h1 class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">ECwebSend</h1>
-        <p class="text-zinc-500 mt-2 text-sm font-medium tracking-wide">Iniciando protocolo P2P Global...</p>
+        <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="loader-logo" alt="Logo" loading="lazy">
+        <p class="text-base tracking-[4px] text-white mb-1 uppercase font-medium">ESTALINGRADO CORP</p>
+        <div class="mb-5 text-[10px] text-primary tracking-[2px] uppercase">CONECTANDO PROTOCOLO P2P</div>
+        <div class="loading-bar"><div id="loading-progress-bar"></div></div>
+        <div id="loading-percent">0%</div>
     </div>
 
     <!-- TOAST NOTIFICATIONS -->
@@ -90,9 +111,9 @@
 
     <!-- HEADER -->
     <header class="glass-panel px-5 py-4 flex justify-between items-center z-10 shrink-0 border-b border-white/5">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg">
-                <i data-lucide="globe-2" class="w-5 h-5 text-primary"></i>
+        <a href="https://nicotips27.github.io/Estalingrado-corp-Buscador-/" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-full h-full object-cover opacity-80 mix-blend-screen" alt="Logo mini">
             </div>
             <div>
                 <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECwebSend <span class="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-md ml-1">PRO</span></h1>
@@ -101,7 +122,7 @@
                     <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Conectando Global...</span>
                 </div>
             </div>
-        </div>
+        </a>
         <button onclick="toggleQRModal()" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
             <i data-lucide="qr-code" class="w-5 h-5"></i>
         </button>
@@ -228,7 +249,7 @@
                 </div>
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
-                    <i data-lucide="zap" class="w-8 h-8 opacity-50"></i>
+                    <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
                     <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v3.5</p>
                     <p class="text-[10px] text-center max-w-[200px]">Optimizada para transferencias a través de Internet (WAN) y redes locales (LAN).</p>
                 </div>
@@ -319,15 +340,36 @@
         let rtcPeerConnection = null;
         let selectedFiles = [];
         
-        // --- INICIALIZACIÓN DE UI ---
-        setTimeout(() => {
-            const splash = document.getElementById('splash');
-            if(splash) {
-                splash.style.opacity = '0';
-                setTimeout(() => splash.classList.add('hidden'), 700);
+        // --- ANIMACIÓN DEL LOADER DE ESTALINGRADO ---
+        const splash = document.getElementById('splash');
+        const progressBar = document.getElementById('loading-progress-bar');
+        const percentText = document.getElementById('loading-percent');
+        
+        let startAnimTime = null; 
+        const duration = 1800; // 1.8 segundos para la animación
+        
+        function animateLoader(timestamp) {
+            if(!startAnimTime) startAnimTime = timestamp; 
+            const elapsed = timestamp - startAnimTime; 
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            
+            if(progressBar) progressBar.style.width = progress + '%'; 
+            if(percentText) percentText.textContent = Math.floor(progress) + '%';
+            
+            if(progress < 100) {
+                requestAnimationFrame(animateLoader);
+            } else {
+                setTimeout(() => {
+                    if(splash) {
+                        splash.style.opacity = '0';
+                        setTimeout(() => splash.classList.add('hidden'), 700);
+                    }
+                }, 300); // Pequeña pausa cuando llega al 100%
             }
-        }, 1500);
+        }
+        requestAnimationFrame(animateLoader);
 
+        // --- CONTINUACIÓN UI ---
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
         const currentURL = window.location.href.split('?')[0] + `?connect=${myRawCode}`;
@@ -361,22 +403,10 @@
         // --- CONFIGURACIÓN WEBRTC (MEJORADA PARA INTERNET) ---
         const rtcConfig = { 
             iceServers: [
-                // Estos servidores STUN de Google y Cloudflare ayudan a los dispositivos 
-                // a descubrir su IP pública en Internet.
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun.cloudflare.com:3478' }
-                
-                // NOTA SOBRE SERVIDORES TURN (Para 100% de fiabilidad en redes estrictas):
-                // Si alguna red empresarial o red móvil estricta bloquea la conexión P2P,
-                // deberás agregar un servidor TURN aquí (es de pago o requiere registro).
-                // Ejemplo:
-                // {
-                //     urls: "turn:tu-servidor-turn.com:3478",
-                //     username: "usuario",
-                //     credential: "password"
-                // }
             ] 
         };
 
