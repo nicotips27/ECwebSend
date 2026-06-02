@@ -94,19 +94,19 @@
         <section id="tab-receive" class="absolute inset-0 p-4 sm:p-6 flex flex-col items-center justify-start sm:justify-center pt-8 sm:pt-6 transition-transform duration-300 translate-x-0 overflow-y-auto hide-scrollbar pb-24">
             
             <!-- Radar Visual -->
-            <div class="relative w-full max-w-[200px] aspect-square flex items-center justify-center mb-4">
+            <div class="relative w-full max-w-[180px] aspect-square flex items-center justify-center mb-2 shrink-0">
                 <div class="radar-ring" style="animation-delay: 0s;"></div>
                 <div class="radar-ring" style="animation-delay: 0.8s;"></div>
                 <div class="radar-ring" style="animation-delay: 1.6s;"></div>
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center z-10 shadow-lg shadow-blue-600/40 border-4 border-[#050a15]">
-                    <i data-lucide="smartphone" class="w-7 h-7 sm:w-8 sm:h-8 text-white"></i>
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center z-10 shadow-lg shadow-blue-600/40 border-4 border-[#050a15]">
+                    <i data-lucide="smartphone" class="w-6 h-6 sm:w-7 sm:h-7 text-white"></i>
                 </div>
             </div>
             
             <!-- Panel de Enlace por Código QR / ID -->
-            <div class="w-full max-w-sm bg-panel border border-blue-900/50 rounded-2xl p-4 mb-4 text-center shadow-lg">
+            <div class="w-full max-w-md bg-panel border border-blue-900/50 rounded-2xl p-4 mb-4 text-center shadow-lg shrink-0">
                 <p class="text-xs text-blue-400 font-semibold tracking-wider uppercase mb-1">Tu Código de Recepción</p>
-                <div class="flex items-center justify-center gap-2 mb-3">
+                <div class="flex items-center justify-center gap-2 mb-2">
                     <span id="pairing-code-display" class="text-2xl font-black text-white tracking-widest bg-black/40 px-4 py-1.5 rounded-xl border border-blue-900/40">-----</span>
                     <button onclick="showQRCodeModal()" class="p-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-xl transition-all">
                         <i data-lucide="qr-code" class="w-5 h-5"></i>
@@ -115,16 +115,32 @@
                 <p class="text-[11px] text-blue-300/50 leading-tight">Los dispositivos cercanos te detectarán automáticamente, o puedes ingresar este código de 5 dígitos para forzar el enlace.</p>
             </div>
             
-            <div class="w-full max-w-md bg-panel rounded-2xl border border-blue-900/40 p-4 sm:p-5 shadow-xl">
-                <h4 class="text-sm font-semibold text-blue-400 mb-4 flex items-center justify-between uppercase tracking-wide">
-                    <span class="flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i> Recibidos</span>
-                    <span id="received-count" class="text-[11px] font-bold text-blue-500 bg-blue-950 px-2 py-0.5 rounded-full">0</span>
-                </h4>
-                <ul id="received-files-list" class="space-y-3 empty:hidden max-h-[160px] overflow-y-auto hide-scrollbar">
-                    <!-- Archivos aquí -->
-                </ul>
-                <div id="no-files-msg" class="text-center text-sm text-blue-300/30 py-4">
-                    Sin archivos recientes en esta sesión
+            <!-- Cuadro de Recibidos Rediseñado -->
+            <div class="w-full max-w-md bg-panel rounded-2xl border border-blue-900/40 p-4 sm:p-5 shadow-xl flex flex-col grow max-h-[300px]">
+                <div class="flex items-center justify-between border-b border-blue-900/30 pb-3 mb-3 shrink-0">
+                    <h4 class="text-xs font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wider">
+                        <i data-lucide="folder-down" class="w-4 h-4 text-blue-500"></i> Archivos Recibidos
+                    </h4>
+                    <div class="flex items-center gap-2">
+                        <span id="received-count" class="text-[10px] font-extrabold text-blue-300 bg-blue-900/50 border border-blue-500/20 px-2 py-0.5 rounded-full">0</span>
+                        <button onclick="clearHistory()" id="clear-btn" class="hidden text-[10px] text-red-400/80 hover:text-red-400 font-bold hover:underline transition-all">Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Lista de archivos -->
+                <div class="flex-1 overflow-y-auto hide-scrollbar">
+                    <ul id="received-files-list" class="space-y-2.5 empty:hidden pr-1">
+                        <!-- Archivos aquí -->
+                    </ul>
+
+                    <!-- Estado Vacío Ilustrado -->
+                    <div id="no-files-msg" class="flex flex-col items-center justify-center py-8 text-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-950/40 border border-blue-900/30 flex items-center justify-center mb-3 text-blue-500/40 animate-pulse">
+                            <i data-lucide="arrow-down" class="w-5 h-5"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-blue-300/40">Sin archivos recibidos</p>
+                        <p class="text-[10px] text-blue-500/30 mt-0.5">Listo para guardar descargas en esta sesión</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -780,25 +796,28 @@
         let receivedCount = 0;
         function saveReceivedFile(blob, filename) {
             document.getElementById('no-files-msg').style.display = 'none';
+            const clearBtn = document.getElementById('clear-btn');
+            if (clearBtn) clearBtn.classList.remove('hidden');
+            
             const url = URL.createObjectURL(blob);
             
             const list = document.getElementById('received-files-list');
             const li = document.createElement('li');
-            li.className = "flex justify-between items-center bg-gray-900/40 p-3 rounded-xl border border-blue-900/30 shadow-sm";
+            li.className = "flex justify-between items-center bg-blue-950/20 p-3 rounded-xl border-l-4 border-l-blue-500 border border-blue-900/30 shadow-md transition-all hover:bg-blue-950/40";
             
             const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
             li.innerHTML = `
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="p-2.5 bg-blue-600 rounded-lg text-white shrink-0 shadow-md">
+                    <div class="p-2 bg-blue-600/10 rounded-lg text-blue-400 shrink-0">
                         <i data-lucide="check" class="w-4 h-4"></i>
                     </div>
                     <div class="truncate">
-                        <p class="text-blue-50 text-sm font-bold truncate">${filename}</p>
-                        <p class="text-[10px] font-semibold text-blue-400 mt-0.5">${sizeMB} MB</p>
+                        <p class="text-blue-50 text-xs font-bold truncate">${filename}</p>
+                        <p class="text-[9px] font-semibold text-blue-400 mt-0.5">${sizeMB} MB</p>
                     </div>
                 </div>
-                <a href="${url}" download="${filename}" class="p-3 bg-blue-900/30 active:bg-blue-800/60 text-blue-400 rounded-xl transition-colors shrink-0">
-                    <i data-lucide="download" class="w-5 h-5"></i>
+                <a href="${url}" download="${filename}" class="p-2.5 bg-blue-900/40 hover:bg-blue-950 text-blue-400 rounded-xl transition-all border border-blue-900/20 shrink-0">
+                    <i data-lucide="download" class="w-4 h-4"></i>
                 </a>
             `;
             list.prepend(li);
@@ -814,6 +833,21 @@
             a.click();
         }
 
+        // Limpiar el historial local de la sesión
+        function clearHistory() {
+            const list = document.getElementById('received-files-list');
+            if (list) list.innerHTML = '';
+            
+            receivedCount = 0;
+            document.getElementById('received-count').innerText = "0";
+            
+            const clearBtn = document.getElementById('clear-btn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            
+            const noMsg = document.getElementById('no-files-msg');
+            if (noMsg) noMsg.style.display = 'flex';
+        }
+
         // Exponer funciones necesarias al objeto global Window para que los inline onclick funcionen en módulos
         window.switchTab = switchTab;
         window.showQRCodeModal = showQRCodeModal;
@@ -824,6 +858,7 @@
         window.closeTransferModal = closeTransferModal;
         window.initiateDirectLink = initiateDirectLink;
         window.sendFilesToDevice = sendFilesToDevice;
+        window.clearHistory = clearHistory;
 
     </script>
 </body>
