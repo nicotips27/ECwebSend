@@ -1,865 +1,761 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#050a15">
-    <title>ECwebSend - Transferencia Local</title>
+    <meta name="theme-color" content="#09090b">
+    <title>ECwebSend Pro - P2P Transfer</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#09090b',
+                        panel: '#18181b',
+                        primary: '#0ea5e9',
+                        secondary: '#6366f1'
+                    },
+                    animation: {
+                        'radar-spin': 'radar-spin 4s linear infinite',
+                        'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        'radar-spin': { 'from': { transform: 'rotate(0deg)' }, 'to': { transform: 'rotate(360deg)' } },
+                        'slideUp': { 'from': { opacity: '0', transform: 'translateY(20px)' }, 'to': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons & Tools -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Generador de Códigos QR para facilitar el enlace móvil -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     
+    <!-- WebRTC PeerJS (Motor de conexión sin backend propio) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
     <style>
-        * {
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #f4f4f5;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-        }
-
-        .safe-pt { padding-top: max(env(safe-area-inset-top), 1rem); }
-        .safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 0.75rem); }
-
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
-            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.7); }
-        }
-        
-        .radar-ring {
-            position: absolute;
-            border: 2px solid rgba(59, 130, 246, 0.25);
-            border-radius: 50%;
-            animation: radar 2.5s infinite ease-out;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        
-        @keyframes radar {
-            0% { width: 60px; height: 60px; opacity: 1; }
-            100% { width: 280px; height: 280px; opacity: 0; }
+            touch-action: pan-y;
         }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        body {
-            background-color: #050a15;
-            color: #e2e8f0;
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
-        .bg-panel {
-            background-color: #0b1325;
+
+        .radar-cone {
+            background: conic-gradient(from 0deg, transparent 70%, rgba(14, 165, 233, 0.4) 100%);
+            border-radius: 50%;
+        }
+
+        /* Custom File Input */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
         }
     </style>
 </head>
-<body class="h-[100dvh] w-full overflow-hidden flex flex-col font-sans select-none touch-manipulation">
+<body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
 
-    <!-- PANTALLA DE CARGA -->
-    <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-500 bg-[#050a15]">
-        <div class="relative w-32 h-32 sm:w-40 sm:h-40 mb-8 rounded-3xl overflow-hidden shadow-2xl" style="animation: pulse-glow 2s infinite;">
-            <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" 
-                 alt="Logo" class="w-full h-full object-cover">
+    <!-- SPLASH SCREEN -->
+    <div id="splash" class="fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="relative w-24 h-24 mb-6">
+            <div class="absolute inset-0 border-4 border-primary/30 rounded-full animate-ping-slow"></div>
+            <div class="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(14,165,233,0.5)]">
+                <i data-lucide="zap" class="w-10 h-10 text-white animate-pulse"></i>
+            </div>
         </div>
-        <h1 class="text-3xl font-extrabold text-blue-500 tracking-wider">ECwebSend</h1>
-        <p class="text-blue-300/60 mt-3 text-sm font-medium">Conectando a la Intra-net...</p>
-        
-        <div class="mt-12 w-48 h-1.5 bg-gray-900 rounded-full overflow-hidden">
-            <div class="h-full bg-blue-500 animate-[pulse_1.5s_ease-in-out_infinite] w-1/2 rounded-full"></div>
-        </div>
+        <h1 class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">ECwebSend</h1>
+        <p class="text-zinc-500 mt-2 text-sm font-medium tracking-wide">Iniciando protocolo P2P...</p>
     </div>
 
-    <!-- CABECERA -->
-    <header class="bg-panel shadow-lg shadow-black/20 border-b border-blue-900/30 px-4 pb-3 safe-pt flex justify-between items-center z-10 shrink-0">
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none"></div>
+
+    <!-- HEADER -->
+    <header class="glass-panel px-5 py-4 flex justify-between items-center z-10 shrink-0 border-b border-white/5">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl overflow-hidden border border-blue-500/30 shadow-sm">
-                <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" 
-                     alt="Logo Mini" class="w-full h-full object-cover">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg">
+                <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
             </div>
-            <div class="flex flex-col justify-center">
-                <h2 class="font-bold text-lg leading-tight text-white">ECwebSend</h2>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                    <span id="network-status-dot" class="w-2.5 h-2.5 bg-yellow-500 rounded-full animate-pulse"></span>
-                    <p class="text-[11px] font-medium text-blue-400" id="my-device-name">Iniciando...</p>
+            <div>
+                <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECwebSend <span class="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-md ml-1">PRO</span></h1>
+                <div class="flex items-center gap-1.5 mt-1">
+                    <span id="status-dot" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
+                    <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Conectando...</span>
                 </div>
             </div>
         </div>
-        <button onclick="toggleConnectionGuide()" class="p-2 -mr-2 text-blue-400 hover:text-blue-300 active:bg-blue-900/30 rounded-full transition-colors">
-            <i data-lucide="help-circle" class="w-6 h-6"></i>
+        <button onclick="toggleQRModal()" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
+            <i data-lucide="qr-code" class="w-5 h-5"></i>
         </button>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 overflow-y-auto hide-scrollbar relative bg-[#050a15]">
+    <!-- MAIN VIEWS -->
+    <main class="flex-1 overflow-hidden relative">
         
-        <!-- PESTAÑA: RECIBIR -->
-        <section id="tab-receive" class="absolute inset-0 p-4 sm:p-6 flex flex-col items-center justify-start sm:justify-center pt-8 sm:pt-6 transition-transform duration-300 translate-x-0 overflow-y-auto hide-scrollbar pb-24">
+        <!-- ================= RECIBIR (MI DISPOSITIVO) ================= -->
+        <section id="view-receive" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300">
             
-            <!-- Radar Visual -->
-            <div class="relative w-full max-w-[180px] aspect-square flex items-center justify-center mb-2 shrink-0">
-                <div class="radar-ring" style="animation-delay: 0s;"></div>
-                <div class="radar-ring" style="animation-delay: 0.8s;"></div>
-                <div class="radar-ring" style="animation-delay: 1.6s;"></div>
-                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center z-10 shadow-lg shadow-blue-600/40 border-4 border-[#050a15]">
-                    <i data-lucide="smartphone" class="w-6 h-6 sm:w-7 sm:h-7 text-white"></i>
-                </div>
-            </div>
-            
-            <!-- Panel de Enlace por Código QR / ID -->
-            <div class="w-full max-w-md bg-panel border border-blue-900/50 rounded-2xl p-4 mb-4 text-center shadow-lg shrink-0">
-                <p class="text-xs text-blue-400 font-semibold tracking-wider uppercase mb-1">Tu Código de Recepción</p>
-                <div class="flex items-center justify-center gap-2 mb-2">
-                    <span id="pairing-code-display" class="text-2xl font-black text-white tracking-widest bg-black/40 px-4 py-1.5 rounded-xl border border-blue-900/40">-----</span>
-                    <button onclick="showQRCodeModal()" class="p-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-xl transition-all">
-                        <i data-lucide="qr-code" class="w-5 h-5"></i>
-                    </button>
-                </div>
-                <p class="text-[11px] text-blue-300/50 leading-tight">Los dispositivos cercanos te detectarán automáticamente, o puedes ingresar este código de 5 dígitos para forzar el enlace.</p>
-            </div>
-            
-            <!-- Cuadro de Recibidos Rediseñado -->
-            <div class="w-full max-w-md bg-panel rounded-2xl border border-blue-900/40 p-4 sm:p-5 shadow-xl flex flex-col grow max-h-[300px]">
-                <div class="flex items-center justify-between border-b border-blue-900/30 pb-3 mb-3 shrink-0">
-                    <h4 class="text-xs font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wider">
-                        <i data-lucide="folder-down" class="w-4 h-4 text-blue-500"></i> Archivos Recibidos
-                    </h4>
-                    <div class="flex items-center gap-2">
-                        <span id="received-count" class="text-[10px] font-extrabold text-blue-300 bg-blue-900/50 border border-blue-500/20 px-2 py-0.5 rounded-full">0</span>
-                        <button onclick="clearHistory()" id="clear-btn" class="hidden text-[10px] text-red-400/80 hover:text-red-400 font-bold hover:underline transition-all">Limpiar</button>
+            <div class="flex flex-col items-center justify-center pt-4 mb-8">
+                <div class="relative w-48 h-48 flex items-center justify-center">
+                    <!-- Radar effect -->
+                    <div class="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]"></div>
+                    <div class="absolute inset-4 border border-primary/30 rounded-full"></div>
+                    <div class="absolute inset-0 radar-cone animate-radar-spin opacity-50"></div>
+                    
+                    <div class="relative z-10 glass-panel w-20 h-20 rounded-full border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)]">
+                        <i data-lucide="smartphone" class="w-8 h-8 text-primary"></i>
                     </div>
                 </div>
 
-                <!-- Lista de archivos -->
-                <div class="flex-1 overflow-y-auto hide-scrollbar">
-                    <ul id="received-files-list" class="space-y-2.5 empty:hidden pr-1">
-                        <!-- Archivos aquí -->
-                    </ul>
-
-                    <!-- Estado Vacío Ilustrado -->
-                    <div id="no-files-msg" class="flex flex-col items-center justify-center py-8 text-center">
-                        <div class="w-12 h-12 rounded-full bg-blue-950/40 border border-blue-900/30 flex items-center justify-center mb-3 text-blue-500/40 animate-pulse">
-                            <i data-lucide="arrow-down" class="w-5 h-5"></i>
-                        </div>
-                        <p class="text-xs font-semibold text-blue-300/40">Sin archivos recibidos</p>
-                        <p class="text-[10px] text-blue-500/30 mt-0.5">Listo para guardar descargas en esta sesión</p>
+                <div class="mt-8 text-center glass-panel p-5 rounded-3xl w-full max-w-sm">
+                    <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Mi Código de Acceso</p>
+                    <div class="flex items-center justify-center gap-3">
+                        <div id="my-code" class="text-4xl font-black tracking-[0.2em] text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">------</div>
+                        <button onclick="copyMyCode()" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 transition-colors">
+                            <i data-lucide="copy" class="w-5 h-5"></i>
+                        </button>
                     </div>
+                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el código QR para que otros dispositivos se conecten directamente a ti.</p>
+                </div>
+            </div>
+
+            <!-- Archivos Recibidos -->
+            <div class="w-full max-w-sm mx-auto">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
+                        <i data-lucide="download-cloud" class="w-4 h-4 text-primary"></i> Recibidos
+                    </h3>
+                    <span id="badge-received" class="text-[10px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md hidden">0</span>
+                </div>
+                
+                <div class="glass-panel rounded-2xl p-2 min-h-[120px] flex flex-col">
+                    <div id="empty-received" class="flex-1 flex flex-col items-center justify-center py-6 text-zinc-600">
+                        <i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="text-xs font-medium">Bandeja vacía</span>
+                    </div>
+                    <ul id="list-received" class="space-y-2 empty:hidden"></ul>
                 </div>
             </div>
         </section>
 
-        <!-- PESTAÑA: ENVIAR -->
-        <section id="tab-send" class="absolute inset-0 p-4 sm:p-6 flex flex-col transition-transform duration-300 translate-x-full hidden overflow-y-auto hide-scrollbar pb-24">
+        <!-- ================= ENVIAR ================= -->
+        <section id="view-send" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             
-            <!-- Enlace Manual Integrado -->
-            <div class="bg-panel rounded-2xl border border-blue-900/40 p-4 mb-4 shadow-lg">
-                <h4 class="text-xs font-semibold text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                    <i data-lucide="link-2" class="w-4 h-4"></i> Enlazar Dispositivo Físico (Manual)
-                </h4>
+            <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
+
+            <!-- Enlace Manual -->
+            <div class="glass-panel rounded-3xl p-5 mb-6 shadow-lg">
+                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Conectar a Dispositivo</label>
                 <div class="flex gap-2">
-                    <input type="number" id="target-code-input" placeholder="Código de 5 dígitos" class="flex-1 bg-black/40 border border-blue-900/60 rounded-xl px-4 py-3 text-white font-bold text-center tracking-widest focus:outline-none focus:border-blue-500 placeholder-blue-900/50 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                    <button onclick="connectWithCode()" class="px-5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-blue-600/20 active:scale-95">
-                        Conectar
+                    <input type="number" id="target-code" placeholder="Código de 6 dígitos" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.1em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
+                    <button onclick="connectToPeer()" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0">
+                        <i data-lucide="link" class="w-5 h-5"></i>
                     </button>
+                </div>
+                <div id="connection-status" class="mt-3 text-xs font-medium text-zinc-500 hidden items-center gap-1.5 justify-center">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i>
+                    <span class="text-green-400">Conectado. Listo para enviar.</span>
                 </div>
             </div>
 
-            <!-- Selección de archivos -->
-            <div class="bg-panel rounded-2xl border border-blue-900/40 p-4 mb-5 shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-sm font-semibold text-blue-400 uppercase tracking-wide">Archivos a Enviar</h4>
-                    <span class="text-xs font-bold text-blue-300 bg-blue-900/40 px-2.5 py-1 rounded-full" id="file-count">0 selec.</span>
+            <!-- Selector de Archivos -->
+            <div class="glass-panel rounded-3xl p-5 shadow-lg flex flex-col mb-6">
+                <div class="flex justify-between items-end mb-4">
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Archivos</label>
+                    <button onclick="clearSelection()" class="text-[10px] text-zinc-500 hover:text-red-400 transition-colors hidden" id="btn-clear-files">Limpiar Todo</button>
                 </div>
                 
                 <input type="file" id="file-input" class="hidden" multiple>
-                <button onclick="document.getElementById('file-input').click()" class="w-full py-5 border-2 border-dashed border-blue-500/20 bg-blue-900/10 active:bg-blue-900/20 rounded-xl text-blue-300 transition-all flex flex-col items-center gap-2">
-                    <div class="p-2 bg-blue-500/10 rounded-full">
-                        <i data-lucide="plus" class="w-6 h-6 text-blue-400"></i>
+                <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                    <div class="p-3 bg-zinc-800 group-hover:bg-primary/20 rounded-full mb-3 transition-colors">
+                        <i data-lucide="upload-cloud" class="w-6 h-6 text-zinc-400 group-hover:text-primary"></i>
                     </div>
-                    <span class="font-medium text-sm">Seleccionar archivos</span>
-                </button>
-                
-                <ul id="selected-files-list" class="mt-3 space-y-2 max-h-32 overflow-y-auto hide-scrollbar overscroll-contain"></ul>
+                    <p class="text-sm font-semibold text-zinc-300">Toca para seleccionar</p>
+                    <p class="text-xs text-zinc-500 mt-1">o arrastra tus archivos aquí</p>
+                </div>
+
+                <ul id="list-selected" class="mt-4 space-y-2 max-h-40 overflow-y-auto hide-scrollbar"></ul>
             </div>
 
-            <!-- Dispositivos Cercanos / Enlazados -->
-            <h3 class="text-base font-bold mb-3 text-white flex items-center gap-2 px-1">
-                <i data-lucide="radio" class="w-5 h-5 text-blue-500 animate-pulse"></i> Dispositivos Detectados en Intra-net
-            </h3>
-            
-            <div id="devices-list" class="grid grid-cols-2 gap-3">
-                <!-- Se poblará con dispositivos -->
-                <div class="col-span-2 text-center text-sm text-blue-200/40 py-8 flex flex-col items-center bg-panel/50 rounded-2xl border border-blue-900/20">
-                    <i data-lucide="loader-2" class="w-7 h-7 text-blue-500 mb-2 animate-spin"></i>
-                    Buscando dispositivos en la red...<br>
-                    <span class="text-xs mt-1 font-normal text-blue-300/40">Abre otra pestaña o celular para conectarte.</span>
-                </div>
-            </div>
+            <!-- Botón de Envío -->
+            <button onclick="sendSelectedFiles()" id="btn-send" class="w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2" disabled>
+                <i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos
+            </button>
+
         </section>
 
-        <!-- PESTAÑA: AJUSTES -->
-        <section id="tab-settings" class="absolute inset-0 p-4 sm:p-6 flex flex-col transition-transform duration-300 translate-x-full hidden overflow-y-auto hide-scrollbar pb-24">
-            <h3 class="text-2xl font-bold mb-6 text-white pt-2">Ajustes</h3>
-            <div class="space-y-3">
-                <div class="bg-panel rounded-2xl border border-blue-900/40 p-4 flex justify-between items-center">
+        <!-- ================= AJUSTES ================= -->
+        <section id="view-settings" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
+            <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Configuración</h2>
+            
+            <div class="space-y-4">
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
                     <div>
-                        <p class="font-semibold text-blue-50">Identificación local</p>
-                        <p class="text-sm text-blue-400 mt-0.5" id="setting-device-name">Cargando...</p>
+                        <p class="font-semibold text-sm text-zinc-200">Protocolo WebRTC</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">PeerJS Network</p>
                     </div>
-                    <div class="p-2 bg-blue-900/30 rounded-full text-blue-400">
-                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                    <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
                     </div>
                 </div>
-                <div class="bg-panel rounded-2xl border border-blue-900/40 p-4 flex justify-between items-center">
+
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
                     <div>
-                        <p class="font-semibold text-blue-50">Modo de transferencia</p>
-                        <p class="text-sm text-blue-400 mt-0.5">Seguro (WebRTC Peer-to-Peer - Firestore Link)</p>
+                        <p class="font-semibold text-sm text-zinc-200">Cifrado E2E</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Activo por defecto</p>
                     </div>
-                    <div class="p-2 bg-blue-500/20 rounded-full text-blue-400">
-                        <i data-lucide="shield" class="w-4 h-4"></i>
+                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <i data-lucide="lock" class="w-4 h-4 text-primary"></i>
                     </div>
                 </div>
-                <div class="bg-panel rounded-2xl border border-blue-900/40 p-4 flex flex-col items-center justify-center mt-8 gap-2 opacity-40">
-                    <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" alt="Logo" class="w-8 h-8 rounded-md grayscale">
-                    <p class="text-xs font-semibold">ECwebSend Mobile v2.0</p>
-                    <p class="text-[10px] text-blue-500/50">Cifrado de extremo a extremo sin servidores de señalización externos</p>
+
+                <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
+                    <i data-lucide="zap" class="w-8 h-8 opacity-50"></i>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v3.0</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Desarrollado para transferencias locales ultrarrápidas y seguras sin intermediarios.</p>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <!-- NAVEGACIÓN INFERIOR -->
-    <nav class="bg-panel/95 backdrop-blur-md border-t border-blue-900/40 safe-pb shrink-0 absolute bottom-0 w-full z-20">
-        <ul class="flex justify-evenly items-center pt-2">
+    <!-- BOTTOM NAV -->
+    <nav class="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-panel rounded-2xl border border-white/10 overflow-hidden z-20">
+        <ul class="flex">
             <li class="flex-1">
-                <button onclick="switchTab('receive')" id="nav-receive" class="w-full h-14 flex flex-col items-center justify-center gap-1.5 text-blue-500 transition-colors">
-                    <i data-lucide="arrow-down-to-line" class="w-6 h-6"></i>
-                    <span class="text-[10px] font-bold tracking-wide">RECIBIR</span>
+                <button onclick="switchView('receive')" id="nav-receive" class="w-full py-3.5 flex flex-col items-center gap-1 text-primary relative">
+                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full transition-opacity" id="indicator-receive"></div>
+                    <i data-lucide="arrow-down-to-line" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold tracking-wider">RECIBIR</span>
                 </button>
             </li>
-            <li class="flex-1">
-                <button onclick="switchTab('send')" id="nav-send" class="w-full h-14 flex flex-col items-center justify-center gap-1.5 text-blue-400/50 hover:text-blue-400 transition-colors">
-                    <i data-lucide="send" class="w-6 h-6"></i>
-                    <span class="text-[10px] font-bold tracking-wide">ENVIAR</span>
+            <li class="flex-1 border-l border-white/5">
+                <button onclick="switchView('send')" id="nav-send" class="w-full py-3.5 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-send"></div>
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold tracking-wider">ENVIAR</span>
                 </button>
             </li>
-            <li class="flex-1">
-                <button onclick="switchTab('settings')" id="nav-settings" class="w-full h-14 flex flex-col items-center justify-center gap-1.5 text-blue-400/50 hover:text-blue-400 transition-colors">
-                    <i data-lucide="settings" class="w-6 h-6"></i>
-                    <span class="text-[10px] font-bold tracking-wide">AJUSTES</span>
+            <li class="flex-1 border-l border-white/5">
+                <button onclick="switchView('settings')" id="nav-settings" class="w-full py-3.5 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-settings"></div>
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="text-[10px] font-bold tracking-wider">AJUSTES</span>
                 </button>
             </li>
         </ul>
     </nav>
 
-    <!-- MODAL DE TRANSFERENCIA -->
-    <div id="transfer-modal" class="fixed inset-0 bg-[#050a15]/90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-panel border border-blue-500/30 rounded-3xl p-8 w-full max-w-[320px] shadow-2xl shadow-blue-600/20 flex flex-col items-center text-center transform transition-all">
-            <h3 class="text-xl font-bold text-white mb-2" id="transfer-title">Enviando...</h3>
-            <p class="text-sm font-medium text-blue-300/80 mb-8 max-w-[250px] truncate" id="transfer-filename">archivo.jpg</p>
-            
-            <div class="relative w-36 h-36 mb-8">
-                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#0f172a" stroke-width="8"></circle>
-                    <circle id="progress-circle" cx="50" cy="50" r="45" fill="none" stroke="#3b82f6" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" class="transition-all duration-300 ease-out"></circle>
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center flex-col">
-                    <span id="progress-text" class="text-3xl font-black text-blue-400 tracking-tighter">0%</span>
-                </div>
-            </div>
-            
-            <button onclick="closeTransferModal()" id="btn-close-transfer" class="hidden w-full py-3.5 bg-blue-600 active:bg-blue-700 text-white rounded-xl font-bold tracking-wide transition-colors shadow-lg shadow-blue-600/30">
-                Aceptar
+    <!-- MODAL QR -->
+    <div id="modal-qr" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-[280px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
+            <button onclick="toggleQRModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-6">Escanear para Enviar</h3>
+            <div class="bg-white p-3 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                <canvas id="qr-canvas" class="w-48 h-48"></canvas>
+            </div>
+            <p class="text-xs text-zinc-400 mt-6 text-center">Abre la cámara de tu celular para vincularte instantáneamente.</p>
         </div>
     </div>
 
-    <!-- MODAL DEL CÓDIGO QR -->
-    <div id="qr-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-panel border border-blue-900/50 rounded-3xl p-6 w-full max-w-[290px] text-center">
-            <h3 class="text-lg font-bold text-white mb-4">Código QR de Enlace</h3>
-            <div class="bg-white p-3 rounded-2xl inline-block mb-4 shadow-xl">
-                <canvas id="qr-canvas" class="w-48 h-48"></canvas>
+    <!-- MODAL TRANSFERENCIA PROGRESO -->
+    <div id="modal-transfer" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[70] hidden flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm flex flex-col items-center">
+            <div id="transfer-icon-container" class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce">
+                <i data-lucide="arrow-up-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>
             </div>
-            <p class="text-xs text-blue-300/60 mb-6">Escanea esto con la cámara de tu otro teléfono para abrir la app y conectarse al instante.</p>
-            <button onclick="closeQRModal()" class="w-full py-3 bg-blue-900/40 hover:bg-blue-950 text-blue-400 rounded-xl font-bold transition-all border border-blue-900/30">
+            
+            <h2 id="transfer-title" class="text-2xl font-bold text-white mb-1">Transfiriendo...</h2>
+            <p id="transfer-filename" class="text-sm text-zinc-400 mb-10 text-center truncate w-full px-4">archivo.pdf</p>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-zinc-800 rounded-full h-3 mb-3 border border-white/5 overflow-hidden">
+                <div id="transfer-progress-bar" class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between w-full px-1 text-xs font-semibold text-zinc-500 mb-8">
+                <span id="transfer-size-info">0 MB / 0 MB</span>
+                <span id="transfer-percent" class="text-primary font-bold">0%</span>
+            </div>
+
+            <button id="btn-transfer-close" onclick="closeTransferModal()" class="hidden px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-white/5">
                 Cerrar
             </button>
         </div>
     </div>
 
-    <!-- GUÍA DE CONEXIÓN MODAL -->
-    <div id="guide-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-panel border border-blue-900/50 rounded-3xl p-6 w-full max-w-[320px]">
-            <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="help-circle" class="text-blue-400"></i> ¿Cómo conectar?
-            </h3>
-            <ul class="space-y-3.5 text-xs text-blue-100/80 mb-6">
-                <li class="flex gap-2">
-                    <span class="bg-blue-600/20 text-blue-400 w-5 h-5 rounded-full flex items-center justify-center font-bold shrink-0">1</span>
-                    <span>Abre <strong>ECwebSend</strong> en ambos celulares o PC.</span>
-                </li>
-                <li class="flex gap-2">
-                    <span class="bg-blue-600/20 text-blue-400 w-5 h-5 rounded-full flex items-center justify-center font-bold shrink-0">2</span>
-                    <span>En el teléfono receptor, ve a <strong>RECIBIR</strong> y mira tu código de 5 dígitos (o genera tu QR).</span>
-                </li>
-                <li class="flex gap-2">
-                    <span class="bg-blue-600/20 text-blue-400 w-5 h-5 rounded-full flex items-center justify-center font-bold shrink-0">3</span>
-                    <span>En el emisor, ve a <strong>ENVIAR</strong>, selecciona tus archivos y toca el dispositivo detectado automáticamente para mandarlo directo.</span>
-                </li>
-            </ul>
-            <button onclick="toggleConnectionGuide()" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/25">
-                Entendido
-            </button>
-        </div>
-    </div>
-
-    <!-- LÓGICA DE FIRESTORE Y WEBRTC INTEGRADOS -->
-    <script type="module">
-        // Importar SDK de Firebase oficiales
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Inicializar iconos
+    <script>
         lucide.createIcons();
 
-        // 1. CONFIGURACIÓN E INTERFAZ INICIAL
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            if (splash) {
+        // --- SISTEMA CORE: VARIABLES ---
+        const PREFIX = "ecwebpro-";
+        const myRawCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digitos numéricos
+        const myPeerId = PREFIX + myRawCode;
+        
+        let peer = null;
+        let activeConnection = null;
+        let selectedFiles = [];
+        
+        // --- INICIALIZACIÓN DE UI ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Splash Screen Hide
+            setTimeout(() => {
+                const splash = document.getElementById('splash');
                 splash.style.opacity = '0';
-                setTimeout(() => splash.remove(), 500);
-            }
-        }, 2500);
+                setTimeout(() => splash.classList.add('hidden'), 700);
+            }, 1500);
 
-        const adjectives = ['Rápido', 'Espacial', 'Azul', 'Fuerte', 'Silencioso', 'Turbo', 'Giga'];
-        const nouns = ['Fénix', 'Halcón', 'León', 'Gato', 'Zorro', 'Oso', 'Lobo'];
-        const myName = `${adjectives[Math.floor(Math.random()*adjectives.length)]} ${nouns[Math.floor(Math.random()*nouns.length)]}`;
-        const pairingCode = Math.floor(10000 + Math.random() * 90000).toString();
+            // Set Code UI
+            document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
-        document.getElementById('pairing-code-display').innerText = pairingCode;
-        document.getElementById('my-device-name').innerText = myName;
-        document.getElementById('setting-device-name').innerText = `${myName} (${pairingCode})`;
+            // Generar QR
+            const currentURL = window.location.href.split('?')[0] + `?connect=${myRawCode}`;
+            new QRious({
+                element: document.getElementById('qr-canvas'),
+                value: currentURL,
+                size: 200,
+                background: '#ffffff',
+                foreground: '#09090b',
+                level: 'M'
+            });
 
-        // Configuración de Código QR
-        const currentURL = window.location.href.split('?')[0] + `?connect=${pairingCode}`;
-        new QRious({
-            element: document.getElementById('qr-canvas'),
-            value: currentURL,
-            size: 200,
-            background: '#ffffff',
-            foreground: '#050a15'
+            // Drag and Drop
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-zinc-800/80'); });
+            dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-primary', 'bg-zinc-800/80'); });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-primary', 'bg-zinc-800/80');
+                if(e.dataTransfer.files.length) {
+                    addFiles(Array.from(e.dataTransfer.files));
+                }
+            });
+
+            // Inicializar WebRTC (PeerJS)
+            initPeer();
         });
 
-        // Cambio de pestaña
-        const tabs = ['receive', 'send', 'settings'];
-        function switchTab(activeTab) {
-            tabs.forEach(tab => {
-                const section = document.getElementById(`tab-${tab}`);
-                const navBtn = document.getElementById(`nav-${tab}`);
-                if (section && navBtn) {
-                    if (tab === activeTab) {
-                        section.classList.remove('hidden', 'translate-x-full', '-translate-x-full');
-                        section.classList.add('translate-x-0');
-                        navBtn.classList.replace('text-blue-400/50', 'text-blue-500');
-                    } else {
-                        const activeIndex = tabs.indexOf(activeTab);
-                        const currIndex = tabs.indexOf(tab);
-                        section.classList.add('hidden');
-                        section.classList.remove('translate-x-0');
-                        if (currIndex < activeIndex) {
-                            section.classList.add('-translate-x-full');
-                        } else {
-                            section.classList.add('translate-x-full');
-                        }
-                        navBtn.classList.replace('text-blue-500', 'text-blue-400/50');
-                    }
+        // --- NAVEGACIÓN VISTAS ---
+        const views = ['receive', 'send', 'settings'];
+        window.switchView = (targetView) => {
+            views.forEach(view => {
+                const section = document.getElementById(`view-${view}`);
+                const navBtn = document.getElementById(`nav-${view}`);
+                const indicator = document.getElementById(`indicator-${view}`);
+                
+                if (view === targetView) {
+                    section.classList.remove('translate-x-full', '-translate-x-full');
+                    navBtn.classList.remove('text-zinc-500');
+                    navBtn.classList.add('text-primary');
+                    indicator.classList.remove('opacity-0');
+                } else {
+                    const targetIndex = views.indexOf(targetView);
+                    const currIndex = views.indexOf(view);
+                    section.classList.remove('translate-x-full', '-translate-x-full');
+                    section.classList.add(currIndex < targetIndex ? '-translate-x-full' : 'translate-x-full');
+                    
+                    navBtn.classList.add('text-zinc-500');
+                    navBtn.classList.remove('text-primary');
+                    indicator.classList.add('opacity-0');
                 }
+            });
+        };
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let colorClass = 'border-primary/50 text-primary';
+            let icon = 'info';
+            if (type === 'success') { colorClass = 'border-green-500/50 text-green-400'; icon = 'check-circle'; }
+            if (type === 'error') { colorClass = 'border-red-500/50 text-red-400'; icon = 'alert-circle'; }
+
+            toast.className = `glass-panel px-4 py-3 rounded-xl border-l-4 ${colorClass} flex items-center gap-3 text-sm font-medium animate-slide-up bg-zinc-900/90`;
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- SISTEMA WEBRTC (PEERJS) ---
+        function initPeer() {
+            // Conectando al servidor público gratuito de PeerJS
+            peer = new Peer(myPeerId, {
+                debug: 1,
+                config: {'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]}
+            });
+
+            peer.on('open', (id) => {
+                document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
+                document.getElementById('status-dot').classList.replace('shadow-[0_0_8px_rgba(234,179,8,0.8)]', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
+                document.getElementById('status-text').innerText = "En Línea";
+                
+                // Comprobar Auto-Connect por URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const connectCode = urlParams.get('connect');
+                if (connectCode && connectCode !== myRawCode) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    switchView('send');
+                    document.getElementById('target-code').value = connectCode;
+                    setTimeout(() => connectToPeer(), 800);
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                setupConnection(conn);
+                showToast(`Dispositivo conectado: ${conn.peer.replace(PREFIX, '')}`, 'success');
+            });
+
+            peer.on('error', (err) => {
+                console.error("Peer Error:", err);
+                showToast(err.type === 'peer-unavailable' ? 'Dispositivo no encontrado.' : 'Error de conexión.', 'error');
+                resetConnectionUI();
             });
         }
 
-        function showQRCodeModal() { document.getElementById('qr-modal').classList.remove('hidden'); }
-        function closeQRModal() { document.getElementById('qr-modal').classList.add('hidden'); }
-        function toggleConnectionGuide() { document.getElementById('guide-modal').classList.toggle('hidden'); }
+        function connectToPeer() {
+            const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
+            if (input.length !== 6) { showToast('El código debe tener 6 dígitos.', 'error'); return; }
+            if (input === myRawCode) { showToast('No puedes conectarte a ti mismo.', 'error'); return; }
 
-        // 2. GESTIÓN DE ARCHIVOS LOCALES
-        let selectedFiles = [];
-        document.getElementById('file-input').addEventListener('change', (e) => {
-            selectedFiles = Array.from(e.target.files);
-            renderSelectedFiles();
+            const targetPeerId = PREFIX + input;
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
+            lucide.createIcons();
+
+            const conn = peer.connect(targetPeerId, { reliable: true });
+            
+            conn.on('open', () => {
+                setupConnection(conn);
+                showToast('¡Enlazado exitosamente!', 'success');
+                
+                // Update UI
+                btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
+                btn.classList.replace('bg-primary', 'bg-green-600');
+                btn.classList.replace('shadow-[0_0_15px_rgba(14,165,233,0.4)]', 'shadow-[0_0_15px_rgba(34,197,94,0.4)]');
+                document.getElementById('connection-status').classList.remove('hidden');
+                document.getElementById('connection-status').classList.add('flex');
+                lucide.createIcons();
+                updateSendButton();
+            });
+        }
+
+        // --- MANEJO DE LA CONEXIÓN DE DATOS ---
+        let incomingFileInfo = null;
+        let incomingData = [];
+        let incomingBytes = 0;
+
+        function setupConnection(conn) {
+            activeConnection = conn;
+            
+            conn.on('data', (data) => {
+                // Si es un objeto JSON (Metadata)
+                if (typeof data === 'string') {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'header') {
+                        incomingFileInfo = msg;
+                        incomingData = [];
+                        incomingBytes = 0;
+                        openTransferModal(msg.name, msg.size, 'receive');
+                    } else if (msg.type === 'eof') {
+                        finishReceivingFile();
+                    }
+                } 
+                // Si es un ArrayBuffer (Fragmento de archivo)
+                else {
+                    incomingData.push(data);
+                    incomingBytes += data.byteLength;
+                    
+                    if (incomingFileInfo) {
+                        updateTransferProgress(incomingBytes, incomingFileInfo.size);
+                    }
+                }
+            });
+
+            conn.on('close', () => {
+                activeConnection = null;
+                showToast('Dispositivo desconectado.', 'info');
+                resetConnectionUI();
+            });
+        }
+
+        function resetConnectionUI() {
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
+            btn.classList.replace('bg-green-600', 'bg-primary');
+            btn.classList.replace('shadow-[0_0_15px_rgba(34,197,94,0.4)]', 'shadow-[0_0_15px_rgba(14,165,233,0.4)]');
+            document.getElementById('connection-status').classList.add('hidden');
+            document.getElementById('connection-status').classList.remove('flex');
+            lucide.createIcons();
+            activeConnection = null;
+            updateSendButton();
+        }
+
+        // --- SISTEMA DE ENVÍO DE ARCHIVOS EN CHUNKS ---
+        window.document.getElementById('file-input').addEventListener('change', (e) => {
+            if(e.target.files.length) addFiles(Array.from(e.target.files));
+            e.target.value = ''; // Reset
         });
 
-        function renderSelectedFiles() {
-            const list = document.getElementById('selected-files-list');
-            document.getElementById('file-count').innerText = `${selectedFiles.length} selec.`;
+        function addFiles(files) {
+            selectedFiles = [...selectedFiles, ...files];
+            renderFileList();
+        }
+
+        window.removeFile = (index) => {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        window.clearSelection = () => {
+            selectedFiles = [];
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('list-selected');
+            const clearBtn = document.getElementById('btn-clear-files');
             list.innerHTML = '';
             
-            selectedFiles.forEach((file, index) => {
+            if (selectedFiles.length > 0) clearBtn.classList.remove('hidden');
+            else clearBtn.classList.add('hidden');
+
+            selectedFiles.forEach((file, idx) => {
                 const li = document.createElement('li');
-                li.className = "flex justify-between items-center bg-gray-900/40 p-3 rounded-xl border border-gray-800/50";
-                const size = (file.size / (1024 * 1024)).toFixed(2);
-                
+                li.className = "flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-white/5";
+                const size = (file.size / (1024*1024)).toFixed(2);
                 li.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="p-2.5 bg-blue-900/30 rounded-lg text-blue-400 shrink-0">
-                            <i data-lucide="file" class="w-4 h-4"></i>
-                        </div>
+                        <i data-lucide="file-text" class="w-5 h-5 text-primary shrink-0"></i>
                         <div class="truncate">
-                            <p class="text-blue-100 text-sm font-medium truncate">${file.name}</p>
-                            <p class="text-[10px] text-blue-500/70 font-semibold mt-0.5">${size} MB</p>
+                            <p class="text-sm font-medium text-zinc-200 truncate">${file.name}</p>
+                            <p class="text-[10px] text-zinc-500">${size} MB</p>
                         </div>
                     </div>
-                    <button onclick="removeFile(${index})" class="p-2 text-red-400/70 active:bg-red-400/20 active:text-red-400 rounded-lg shrink-0 transition-colors">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
+                    <button onclick="removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 transition-colors shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                 `;
                 list.appendChild(li);
             });
             lucide.createIcons();
+            updateSendButton();
         }
 
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            renderSelectedFiles();
-        }
-
-        // 3. SEÑALIZACIÓN WEBRTC POR FIRESTORE (En lugar de PeerJS)
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-        const peerConnections = {};
-        const activeConnections = {};
-        const knownDevices = {};
-
-        // Autenticar de manera segura
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
+        function updateSendButton() {
+            const btn = document.getElementById('btn-send');
+            if (selectedFiles.length > 0 && activeConnection && activeConnection.open) {
+                btn.disabled = false;
+                btn.className = "w-full py-4 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)] active:scale-95";
             } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        initAuth();
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const dot = document.getElementById('network-status-dot');
-                if (dot) dot.className = "w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse";
-                document.getElementById('my-device-name').innerText = `${myName} (Listo)`;
-                
-                // Iniciar latido de presencia para autodescubrimiento
-                startPresenceHeartbeat();
-                // Iniciar escuchas en la base de datos para señales WebRTC
-                startFirestoreListeners();
-            } else {
-                const dot = document.getElementById('network-status-dot');
-                if (dot) dot.className = "w-2.5 h-2.5 bg-red-500 rounded-full";
-            }
-        });
-
-        // Registrar presencia cada 3 segundos en el lobby público del App ID
-        function startPresenceHeartbeat() {
-            setInterval(async () => {
-                if (!auth.currentUser) return;
-                const presenceRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobby', pairingCode);
-                try {
-                    await setDoc(presenceRef, {
-                        name: myName,
-                        timestamp: Date.now()
-                    });
-                } catch (e) {
-                    console.error("Error de presencia en Firestore:", e);
-                }
-            }, 3000);
-        }
-
-        // Enviar un mensaje de señalización WebRTC (SDP / ICE candidates)
-        async function sendSignal(type, targetCode, payload) {
-            if (!auth.currentUser) return;
-            const signalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'signals');
-            try {
-                await addDoc(signalsCol, {
-                    type: type,
-                    sender: pairingCode,
-                    receiver: targetCode,
-                    payload: JSON.stringify(payload),
-                    timestamp: Date.now()
-                });
-            } catch (e) {
-                console.error("Error al enviar señal WebRTC:", e);
+                btn.disabled = true;
+                btn.className = "w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed";
             }
         }
 
-        // Listeners principales para la Intra-net de ECwebSend
-        function startFirestoreListeners() {
-            if (!auth.currentUser) return;
-
-            // 1. Escuchar presencia del lobby (Autodescubrimiento tipo LocalSend)
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'lobby'), (snapshot) => {
-                const now = Date.now();
-                snapshot.forEach(doc => {
-                    const id = doc.id;
-                    const data = doc.data();
-                    if (id !== pairingCode) {
-                        // Si el dispositivo sigue activo en los últimos 9 segundos, lo mostramos
-                        if (now - data.timestamp < 9000) {
-                            knownDevices[id] = { name: data.name, lastSeen: data.timestamp };
-                        } else {
-                            delete knownDevices[id];
-                        }
-                    }
-                });
-                renderDevices();
-            }, (err) => console.error("Error escuchando lobby:", err));
-
-            // 2. Escuchar señales entrantes dirigidas a mí
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'signals'), (snapshot) => {
-                snapshot.docChanges().forEach(async (change) => {
-                    if (change.type === 'added') {
-                        const data = change.doc.data();
-                        // Filtrar únicamente las señales válidas dirigidas a mí y recientes
-                        if (data.receiver === pairingCode && (Date.now() - data.timestamp < 30000)) {
-                            const signalRef = change.doc.ref;
-                            // Eliminar la señal procesada para no acumular basura
-                            await deleteDoc(signalRef).catch(e => console.warn(e));
-                            handleIncomingSignal(data);
-                        }
-                    }
-                });
-            }, (err) => console.error("Error escuchando señales:", err));
-
-            // Auto enlace si viene el parámetro de QR en la URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const autoConnectCode = urlParams.get('connect');
-            if (autoConnectCode && autoConnectCode !== pairingCode) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-                switchTab('send');
-                const targetInput = document.getElementById('target-code-input');
-                if (targetInput) {
-                    targetInput.value = autoConnectCode;
-                    setTimeout(() => connectWithCode(), 1000);
-                }
-            }
-        }
-
-        // Procesar señales SDP entrantes
-        async function handleIncomingSignal(data) {
-            const senderCode = data.sender;
-            const payload = JSON.parse(data.payload);
-
-            if (data.type === 'offer') {
-                switchTab('receive');
-                const pc = createPeerConnection(senderCode);
-                await pc.setRemoteDescription(new RTCSessionDescription(payload));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                await sendSignal('answer', senderCode, answer);
-            } else if (data.type === 'answer') {
-                const pc = peerConnections[senderCode];
-                if (pc) {
-                    await pc.setRemoteDescription(new RTCSessionDescription(payload));
-                }
-            } else if (data.type === 'candidate') {
-                const pc = peerConnections[senderCode];
-                if (pc) {
-                    try {
-                        await pc.addIceCandidate(new RTCIceCandidate(payload));
-                    } catch (e) {
-                        console.warn("ICE Candidate omitido:", e);
-                    }
-                }
-            }
-        }
-
-        // Crear conexión de par WebRTC
-        function createPeerConnection(targetCode) {
-            if (peerConnections[targetCode]) {
-                peerConnections[targetCode].close();
-            }
-
-            const pc = new RTCPeerConnection(rtcConfig);
-            peerConnections[targetCode] = pc;
-
-            pc.onicecandidate = (event) => {
-                if (event.candidate) {
-                    sendSignal('candidate', targetCode, event.candidate);
-                }
-            };
-
-            pc.ondatachannel = (event) => {
-                setupDataChannel(event.channel);
-            };
-
-            pc.onconnectionstatechange = () => {
-                if (pc.connectionState === 'connected') {
-                    activeConnections[targetCode] = { name: knownDevices[targetCode]?.name || `Celular (${targetCode})` };
-                    renderDevices();
-                } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
-                    delete activeConnections[targetCode];
-                    renderDevices();
-                }
-            };
-
-            return pc;
-        }
-
-        // Conectar usando el input de 5 dígitos
-        async function connectWithCode() {
-            const codeInput = document.getElementById('target-code-input');
-            const code = codeInput ? codeInput.value.trim() : "";
-            if (code.length !== 5) {
-                alert("Por favor, ingresa un código de 5 dígitos válido.");
-                return;
-            }
-            if (code === pairingCode) {
-                alert("No puedes enlazarte a ti mismo.");
-                return;
-            }
-
-            // Crear oferta para iniciar el apretón de manos WebRTC
-            const pc = createPeerConnection(code);
-            const dc = pc.createDataChannel('fileTransfer');
-            dc.binaryType = 'arraybuffer';
-            setupDataChannel(dc);
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            await sendSignal('offer', code, offer);
-        }
-
-        // Renderizar la lista unificada de dispositivos en la Intra-net
-        function renderDevices() {
-            const list = document.getElementById('devices-list');
-            if (!list) return;
-            list.innerHTML = '';
+        // ENVÍO
+        window.sendSelectedFiles = async () => {
+            if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             
-            // Unir descubiertos por lobby con conexiones activas
-            const peerCodes = Array.from(new Set([...Object.keys(knownDevices), ...Object.keys(activeConnections)]));
+            const file = selectedFiles[0]; // Enviamos uno por uno en esta versión
+            openTransferModal(file.name, file.size, 'send');
             
-            if (peerCodes.length === 0) {
-                list.innerHTML = `
-                    <div class="col-span-2 text-center text-sm text-blue-200/40 py-8 flex flex-col items-center bg-panel/50 rounded-2xl border border-blue-900/20">
-                        <i data-lucide="loader-2" class="w-7 h-7 text-blue-500 mb-2 animate-spin"></i>
-                        Buscando dispositivos en la red...<br>
-                        <span class="text-xs mt-1 font-normal text-blue-300/40">Abre la app en otro teléfono para verlo aquí automáticamente.</span>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            peerCodes.forEach(code => {
-                const name = knownDevices[code]?.name || activeConnections[code]?.name || `Dispositivo ${code}`;
-                const isConnected = activeConnections[code] ? true : false;
-                const div = document.createElement('div');
-                
-                div.className = `${isConnected ? 'bg-green-600/10 border-green-500/30' : 'bg-blue-600/10 border-blue-500/30'} border p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 transition-all shadow-lg cursor-pointer`;
-                div.onclick = () => isConnected ? sendFilesToDevice(code) : initiateDirectLink(code);
-                
-                div.innerHTML = `
-                    <div class="w-12 h-12 bg-gradient-to-tr from-gray-800 to-gray-700 rounded-full flex items-center justify-center border-2 ${isConnected ? 'border-green-500/50' : 'border-blue-900/50'} shadow-inner">
-                        <i data-lucide="smartphone" class="w-5 h-5 ${isConnected ? 'text-green-400' : 'text-blue-400'}"></i>
-                    </div>
-                    <p class="text-xs font-bold text-blue-50 text-center w-full truncate px-1">${name}</p>
-                    <p class="text-[9px] font-semibold ${isConnected ? 'text-green-400 bg-green-950' : 'text-blue-400 bg-blue-950'} px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                        ${isConnected ? 'Listo: Enviar' : 'Vincular'}
-                    </p>
-                `;
-                list.appendChild(div);
-            });
-            lucide.createIcons();
-        }
-
-        // Autoconectar al tocar un dispositivo descubierto en la red
-        async function initiateDirectLink(code) {
-            const pc = createPeerConnection(code);
-            const dc = pc.createDataChannel('fileTransfer');
-            dc.binaryType = 'arraybuffer';
-            setupDataChannel(dc);
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            await sendSignal('offer', code, offer);
-        }
-
-        // 4. ENVÍO DE ARCHIVOS BINARIOS SEGURO
-        function sendFilesToDevice(code) {
-            const target = peerConnections[code];
-            if (!target || selectedFiles.length === 0) {
-                alert("Por favor, selecciona los archivos que quieres enviar primero.");
-                return;
-            }
-
-            const file = selectedFiles[0]; 
-            showTransferModal(file.name, "Enviando...");
-
-            // Encontrar el canal de datos correcto
-            const channel = target.dc || window.currentDataChannel;
-            if (!channel || channel.readyState !== 'open') {
-                alert("La conexión se ha cerrado o sigue negociando. Inténtalo de nuevo.");
-                return;
-            }
-
-            // Enviar metadatos de cabecera
-            channel.send(JSON.stringify({
+            // 1. Enviar Cabecera
+            activeConnection.send(JSON.stringify({
                 type: 'header',
                 name: file.name,
                 size: file.size,
                 mime: file.type
             }));
 
-            const chunkSize = 16384; // Chunks de 16KB para máxima estabilidad en redes móviles
+            // 2. Fragmentación y envío (64KB chunks óptimo para WebRTC)
+            const chunkSize = 64 * 1024; 
             let offset = 0;
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                channel.send(e.target.result);
-                offset += e.target.result.byteLength;
-                updateModalProgress((offset / file.size) * 100);
-
-                if (offset < file.size) {
-                    readNextChunk();
-                } else {
-                    channel.send(JSON.stringify({ type: 'eof' }));
-                    document.getElementById('btn-close-transfer').classList.remove('hidden');
-                    document.getElementById('transfer-title').innerText = "¡Enviado!";
+            
+            const readNextChunk = () => {
+                const slice = file.slice(offset, offset + chunkSize);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    activeConnection.send(e.target.result);
+                    offset += e.target.result.byteLength;
+                    updateTransferProgress(offset, file.size);
                     
-                    // Limpiar selección de archivos locales
-                    selectedFiles = [];
-                    renderSelectedFiles();
-                }
+                    if (offset < file.size) {
+                        // Usar setTimeout pequeño evita bloquear el UI thread
+                        setTimeout(readNextChunk, 5); 
+                    } else {
+                        activeConnection.send(JSON.stringify({ type: 'eof' }));
+                        finishSendingFile();
+                    }
+                };
+                reader.readAsArrayBuffer(slice);
             };
 
-            function readNextChunk() {
-                const slice = file.slice(offset, offset + chunkSize);
-                reader.readAsArrayBuffer(slice);
-            }
-
+            // Iniciar lectura
             setTimeout(readNextChunk, 100);
         }
 
-        function setupDataChannel(channel) {
-            window.currentDataChannel = channel;
-            channel.onopen = () => {
-                console.log("Canal de datos de WebRTC abierto de extremo a extremo.");
-            };
-
-            channel.onmessage = (event) => {
-                if (typeof event.data === 'string') {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'header') {
-                        window.incomingFileInfo = msg;
-                        window.incomingFileData = [];
-                        window.incomingBytesReceived = 0;
-                        showTransferModal(msg.name, "Recibiendo...");
-                    } else if (msg.type === 'eof') {
-                        const blob = new Blob(window.incomingFileData, { type: window.incomingFileInfo.mime });
-                        saveReceivedFile(blob, window.incomingFileInfo.name);
-                        updateModalProgress(100);
-                        document.getElementById('btn-close-transfer').classList.remove('hidden');
-                        document.getElementById('transfer-title').innerText = "¡Completado!";
-                    }
-                } else {
-                    window.incomingFileData.push(event.data);
-                    window.incomingBytesReceived += event.data.byteLength;
-                    if (window.incomingFileInfo) {
-                        const percent = (window.incomingBytesReceived / window.incomingFileInfo.size) * 100;
-                        updateModalProgress(percent);
-                    }
-                }
-            };
-        }
-
-        // 5. INTERFAZ MODAL Y DESCARGA
-        function showTransferModal(filename, title) {
-            document.getElementById('transfer-modal').classList.remove('hidden');
+        // --- INTERFAZ TRANSFERENCIA MODAL ---
+        function openTransferModal(filename, size, mode) {
+            document.getElementById('modal-transfer').classList.remove('hidden');
+            document.getElementById('btn-transfer-close').classList.add('hidden');
+            
             document.getElementById('transfer-filename').innerText = filename;
-            document.getElementById('transfer-title').innerText = title;
-            document.getElementById('btn-close-transfer').classList.add('hidden');
-            updateModalProgress(0);
+            document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
+            
+            const icon = document.getElementById('transfer-icon');
+            icon.setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
+            lucide.createIcons();
+
+            updateTransferProgress(0, size);
         }
 
-        function closeTransferModal() {
-            document.getElementById('transfer-modal').classList.add('hidden');
+        function updateTransferProgress(current, total) {
+            const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            const currentMB = (current / (1024*1024)).toFixed(1);
+            const totalMB = (total / (1024*1024)).toFixed(1);
+
+            document.getElementById('transfer-progress-bar').style.width = percent + '%';
+            document.getElementById('transfer-percent').innerText = percent + '%';
+            document.getElementById('transfer-size-info').innerText = `${currentMB} MB / ${totalMB} MB`;
         }
 
-        function updateModalProgress(percent) {
-            const p = Math.min(100, Math.max(0, percent));
-            document.getElementById('progress-text').innerText = Math.round(p) + '%';
-            document.getElementById('progress-circle').style.strokeDashoffset = 283 - (283 * (p / 100));
+        function finishSendingFile() {
+            document.getElementById('transfer-title').innerText = '¡Enviado con éxito!';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            lucide.createIcons();
+            document.getElementById('transfer-icon-container').classList.replace('text-primary', 'text-green-400');
+            document.getElementById('transfer-icon-container').classList.replace('bg-primary/10', 'bg-green-500/10');
+            document.getElementById('transfer-progress-bar').classList.replace('from-primary', 'from-green-500');
+            document.getElementById('transfer-progress-bar').classList.replace('to-secondary', 'to-green-400');
+            
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
+            
+            // Remove sent file from list
+            selectedFiles.shift();
+            renderFileList();
+        }
+
+        function finishReceivingFile() {
+            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            lucide.createIcons();
+            document.getElementById('transfer-progress-bar').style.width = '100%';
+            
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
+
+            // Crear Blob y generar descarga
+            const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
+            const url = URL.createObjectURL(blob);
+            
+            // Guardar en la UI de recibidos
+            addToReceivedList(incomingFileInfo.name, incomingFileInfo.size, url);
+
+            // Auto-descargar usando un elemento A invisible
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = incomingFileInfo.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        window.closeTransferModal = () => {
+            document.getElementById('modal-transfer').classList.add('hidden');
+            // Reset modal styles
+            setTimeout(() => {
+                document.getElementById('transfer-icon-container').className = "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce";
+                document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
+            }, 500);
         }
 
         let receivedCount = 0;
-        function saveReceivedFile(blob, filename) {
-            document.getElementById('no-files-msg').style.display = 'none';
-            const clearBtn = document.getElementById('clear-btn');
-            if (clearBtn) clearBtn.classList.remove('hidden');
+        function addToReceivedList(name, size, url) {
+            document.getElementById('empty-received').classList.add('hidden');
+            document.getElementById('badge-received').classList.remove('hidden');
             
-            const url = URL.createObjectURL(blob);
-            
-            const list = document.getElementById('received-files-list');
+            receivedCount++;
+            document.getElementById('badge-received').innerText = receivedCount;
+
+            const list = document.getElementById('list-received');
             const li = document.createElement('li');
-            li.className = "flex justify-between items-center bg-blue-950/20 p-3 rounded-xl border-l-4 border-l-blue-500 border border-blue-900/30 shadow-md transition-all hover:bg-blue-950/40";
+            li.className = "flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 hover:bg-zinc-800 transition-colors group";
             
-            const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+            const sizeMB = (size / (1024*1024)).toFixed(2);
             li.innerHTML = `
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="p-2 bg-blue-600/10 rounded-lg text-blue-400 shrink-0">
+                    <div class="p-2 bg-green-500/10 rounded-lg text-green-400 shrink-0">
                         <i data-lucide="check" class="w-4 h-4"></i>
                     </div>
                     <div class="truncate">
-                        <p class="text-blue-50 text-xs font-bold truncate">${filename}</p>
-                        <p class="text-[9px] font-semibold text-blue-400 mt-0.5">${sizeMB} MB</p>
+                        <p class="text-sm font-semibold text-zinc-200 truncate">${name}</p>
+                        <p class="text-[10px] text-zinc-500">${sizeMB} MB</p>
                     </div>
                 </div>
-                <a href="${url}" download="${filename}" class="p-2.5 bg-blue-900/40 hover:bg-blue-950 text-blue-400 rounded-xl transition-all border border-blue-900/20 shrink-0">
+                <a href="${url}" download="${name}" class="p-2 text-primary hover:text-white bg-primary/10 hover:bg-primary rounded-lg transition-all shrink-0">
                     <i data-lucide="download" class="w-4 h-4"></i>
                 </a>
             `;
             list.prepend(li);
             lucide.createIcons();
-
-            receivedCount++;
-            document.getElementById('received-count').innerText = receivedCount;
-            
-            // Forzar descarga automática del navegador
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
         }
 
-        // Limpiar el historial local de la sesión
-        function clearHistory() {
-            const list = document.getElementById('received-files-list');
-            if (list) list.innerHTML = '';
-            
-            receivedCount = 0;
-            document.getElementById('received-count').innerText = "0";
-            
-            const clearBtn = document.getElementById('clear-btn');
-            if (clearBtn) clearBtn.classList.add('hidden');
-            
-            const noMsg = document.getElementById('no-files-msg');
-            if (noMsg) noMsg.style.display = 'flex';
+        // --- UTILIDADES MENORES ---
+        window.toggleQRModal = () => {
+            const modal = document.getElementById('modal-qr');
+            modal.classList.toggle('hidden');
         }
 
-        // Exponer funciones necesarias al objeto global Window para que los inline onclick funcionen en módulos
-        window.switchTab = switchTab;
-        window.showQRCodeModal = showQRCodeModal;
-        window.closeQRModal = closeQRModal;
-        window.toggleConnectionGuide = toggleConnectionGuide;
-        window.connectWithCode = connectWithCode;
-        window.removeFile = removeFile;
-        window.closeTransferModal = closeTransferModal;
-        window.initiateDirectLink = initiateDirectLink;
-        window.sendFilesToDevice = sendFilesToDevice;
-        window.clearHistory = clearHistory;
-
+        window.copyMyCode = () => {
+            navigator.clipboard.writeText(myRawCode).then(() => {
+                showToast('Código copiado al portapapeles', 'success');
+            }).catch(() => {
+                // Fallback execCommand
+                const textArea = document.createElement("textarea");
+                textArea.value = myRawCode;
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Código copiado al portapapeles', 'success');
+                } catch (err) {
+                    showToast('No se pudo copiar', 'error');
+                }
+                document.body.removeChild(textArea);
+            });
+        }
     </script>
 </body>
 </html>
