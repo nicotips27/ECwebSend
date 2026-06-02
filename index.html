@@ -150,7 +150,6 @@
                     <div class="flex justify-between items-center mb-2 px-1">
                         <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Código</p>
                         <div class="flex items-center gap-1.5">
-                            <!-- NUEVO CRONÓMETRO CIRCULAR -->
                             <div class="flex items-center gap-1.5 bg-zinc-800/80 px-2 py-1 rounded-md border border-white/5" title="El código se renueva por seguridad">
                                 <div class="relative w-3.5 h-3.5">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 24 24">
@@ -158,7 +157,7 @@
                                         <circle id="timer-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" stroke-dasharray="62.83" stroke-dashoffset="0" class="text-primary transition-all duration-1000 ease-linear"></circle>
                                     </svg>
                                 </div>
-                                <span id="code-timer-text" class="text-[10px] text-primary font-mono font-bold tracking-wider w-5 text-center">60s</span>
+                                <span id="code-timer-text" class="text-[10px] text-primary font-mono font-bold tracking-wider w-5 text-center">180s</span>
                             </div>
                             <span class="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-md font-mono font-bold tracking-wider">6 DÍGITOS</span>
                         </div>
@@ -261,8 +260,8 @@
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v4.2</p>
-                    <p class="text-[10px] text-center max-w-[200px]">Totalmente independiente. No requiere base de datos manual para conectarse.</p>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v4.3</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Incluye sistema Anti-Desconexión (Keep-Alive) para transferencias largas e interrupciones.</p>
                 </div>
             </div>
         </section>
@@ -399,6 +398,7 @@
         let peer = null;
         let activeConnection = null;
         let selectedFiles = [];
+        let keepAliveInterval = null; // Variable para latidos anti-desconexión
 
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
@@ -502,14 +502,28 @@
             });
         };
 
-        // 4. LÓGICA DE ARCHIVOS
+        // 4. LÓGICA DE ARCHIVOS & ANTI-DESCONEXIÓN
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
             activeConnection = conn;
+            
+            // Pausar el cronómetro para que no se desconecte mientras están enlazados
+            stopCodeTimer();
+
+            // Iniciar Latidos (Ping) cada 3 segundos para que el navegador no mate la conexión inactiva
+            clearInterval(keepAliveInterval);
+            keepAliveInterval = setInterval(() => {
+                if (activeConnection && activeConnection.open) {
+                    try { activeConnection.send(JSON.stringify({ type: 'ping' })); } catch(e){}
+                }
+            }, 3000);
+
             conn.on('data', (data) => {
                 if (typeof data === 'string') {
                     const msg = JSON.parse(data);
+                    if (msg.type === 'ping') return; // Si recibimos un latido, simplemente lo ignoramos (ya cumplió su función de mantener la red activa)
+                    
                     if (msg.type === 'header') {
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                         openTransferModal(msg.name, msg.size, 'receive');
@@ -536,6 +550,7 @@
         }
 
         function resetConnectionUI() {
+            clearInterval(keepAliveInterval); // Detener latidos
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
             btn.classList.replace('bg-green-600', 'bg-primary');
@@ -544,6 +559,7 @@
             if (window.lucide) window.lucide.createIcons();
             activeConnection = null;
             updateSendButton();
+            startCodeTimer(); // Reactivar el cronómetro y rotación de código si el usuario se desconecta
         }
 
         // Dropzone & Input
@@ -685,7 +701,6 @@
                     const length = e.target.value.length;
                     counterEl.innerText = `${length}/6`;
                     
-                    // Iluminar el contador cuando está completo
                     if (length === 6) {
                         counterEl.classList.replace('text-zinc-400', 'text-primary');
                         counterEl.classList.replace('bg-zinc-800', 'bg-primary/20');
@@ -697,8 +712,8 @@
             }
         })();
 
-        // --- ROTACIÓN DE CÓDIGO (ESTILO AUTENTICADOR) ---
-        const CODE_VALID_TIME = 60; // 60 segundos
+        // --- ROTACIÓN DE CÓDIGO (180 Segundos y Pausa de Caducidad) ---
+        const CODE_VALID_TIME = 180; // 3 minutos ahora para más comodidad
         let codeTimeLeft = CODE_VALID_TIME;
         let codeTimerInterval = null;
 
@@ -711,9 +726,12 @@
             
             if (!circle || !text) return;
 
-            // Reiniciar UI
-            circle.classList.replace('text-red-500', 'text-primary');
-            text.classList.replace('text-red-500', 'text-primary');
+            // Reiniciar UI de colores (En caso de venir de un OK verde)
+            circle.classList.remove('text-green-500', 'text-red-500');
+            circle.classList.add('text-primary');
+            text.classList.remove('text-green-500', 'text-red-500');
+            text.classList.add('text-primary');
+            
             circle.style.strokeDashoffset = '0';
             text.innerText = codeTimeLeft + 's';
             
@@ -721,29 +739,41 @@
                 codeTimeLeft--;
                 text.innerText = codeTimeLeft + 's';
                 
-                // Calcular el progreso del círculo (circunferencia de 62.83)
                 const offset = 62.83 - (62.83 * (codeTimeLeft / CODE_VALID_TIME));
                 circle.style.strokeDashoffset = offset;
                 
-                // Cambiar a rojo en los últimos 10 segundos
                 if (codeTimeLeft === 10) {
                     circle.classList.replace('text-primary', 'text-red-500');
                     text.classList.replace('text-primary', 'text-red-500');
                 }
                 
-                // Renovar código cuando llegue a 0
                 if (codeTimeLeft <= 0) {
                     refreshMyCode();
                 }
             }, 1000);
         }
 
+        function stopCodeTimer() {
+            clearInterval(codeTimerInterval);
+            const circle = document.getElementById('timer-circle');
+            const text = document.getElementById('code-timer-text');
+            
+            if (circle && text) {
+                // Cambiar el contador a verde fijo indicando que la conexión está asegurada
+                circle.classList.remove('text-primary', 'text-red-500');
+                circle.classList.add('text-green-500');
+                text.classList.remove('text-primary', 'text-red-500');
+                text.classList.add('text-green-500');
+                
+                circle.style.strokeDashoffset = '0';
+                text.innerText = 'OK';
+            }
+        }
+
         function refreshMyCode() {
-            // Renovar variables
             myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
             myPeerId = PREFIX + myRawCode;
             
-            // UI
             document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
             if (window.QRious) {
                 new window.QRious({
@@ -753,12 +783,11 @@
                 });
             }
 
-            // Gestionar PeerJS para no cortar transferencias activas
             if (peer) {
                 if (!activeConnection || !activeConnection.open) {
                     peer.destroy();
                 } else {
-                    peer.disconnect(); // Desconecta del servidor de descubrimiento pero mantiene la transferencia P2P viva
+                    peer.disconnect();
                 }
             }
             
@@ -766,7 +795,6 @@
             startCodeTimer();
         }
 
-        // Iniciar cronómetro al cargar la página
         startCodeTimer();
     </script>
 </body>
