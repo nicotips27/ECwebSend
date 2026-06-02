@@ -36,6 +36,9 @@
     <!-- Icons & Tools -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    
+    <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -64,7 +67,6 @@
             border-radius: 50%;
         }
 
-        /* Custom File Input */
         input[type="number"]::-webkit-inner-spin-button, 
         input[type="number"]::-webkit-outer-spin-button { 
             -webkit-appearance: none; margin: 0; 
@@ -131,12 +133,10 @@
     <!-- MAIN VIEWS -->
     <main class="flex-1 overflow-hidden relative">
         
-        <!-- ================= RECIBIR (MI DISPOSITIVO) ================= -->
+        <!-- ================= RECIBIR ================= -->
         <section id="view-receive" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300">
-            
             <div class="flex flex-col items-center justify-center pt-4 mb-8">
                 <div class="relative w-48 h-48 flex items-center justify-center">
-                    <!-- Radar effect -->
                     <div class="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]"></div>
                     <div class="absolute inset-4 border border-primary/30 rounded-full"></div>
                     <div class="absolute inset-0 radar-cone animate-radar-spin opacity-50"></div>
@@ -158,7 +158,6 @@
                 </div>
             </div>
 
-            <!-- Archivos Recibidos -->
             <div class="w-full max-w-sm mx-auto">
                 <div class="flex items-center justify-between mb-3 px-1">
                     <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
@@ -179,10 +178,8 @@
 
         <!-- ================= ENVIAR ================= -->
         <section id="view-send" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
-            
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
 
-            <!-- Enlace Manual -->
             <div class="glass-panel rounded-3xl p-5 mb-6 shadow-lg">
                 <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Conectar a Dispositivo</label>
                 <div class="flex gap-2">
@@ -197,7 +194,6 @@
                 </div>
             </div>
 
-            <!-- Selector de Archivos -->
             <div class="glass-panel rounded-3xl p-5 shadow-lg flex flex-col mb-6">
                 <div class="flex justify-between items-end mb-4">
                     <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Archivos</label>
@@ -216,22 +212,19 @@
                 <ul id="list-selected" class="mt-4 space-y-2 max-h-40 overflow-y-auto hide-scrollbar"></ul>
             </div>
 
-            <!-- Botón de Envío -->
             <button onclick="window.sendSelectedFiles()" id="btn-send" class="w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2" disabled>
                 <i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos
             </button>
-
         </section>
 
         <!-- ================= AJUSTES ================= -->
         <section id="view-settings" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Configuración</h2>
-            
             <div class="space-y-4">
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
                     <div>
                         <p class="font-semibold text-sm text-zinc-200">Protocolo WebRTC Global</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">Firestore Signaling</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Servidor Público PeerJS</p>
                     </div>
                     <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
                         <i data-lucide="globe" class="w-4 h-4 text-green-400"></i>
@@ -250,12 +243,11 @@
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v4.1</p>
-                    <p class="text-[10px] text-center max-w-[200px]">Optimizada para transferencias locales y remotas de forma segura.</p>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v4.2</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Totalmente independiente. No requiere base de datos manual para conectarse.</p>
                 </div>
             </div>
         </section>
-
     </main>
 
     <!-- BOTTOM NAV -->
@@ -285,7 +277,7 @@
         </ul>
     </nav>
 
-    <!-- MODAL QR -->
+    <!-- MODALES -->
     <div id="modal-qr" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[280px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleQRModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
@@ -299,7 +291,6 @@
         </div>
     </div>
 
-    <!-- MODAL TRANSFERENCIA PROGRESO -->
     <div id="modal-transfer" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[70] hidden flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-sm flex flex-col items-center">
             <div id="transfer-icon-container" class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce">
@@ -309,7 +300,6 @@
             <h2 id="transfer-title" class="text-2xl font-bold text-white mb-1">Transfiriendo...</h2>
             <p id="transfer-filename" class="text-sm text-zinc-400 mb-10 text-center truncate w-full px-4">archivo.pdf</p>
 
-            <!-- Progress Bar -->
             <div class="w-full bg-zinc-800 rounded-full h-3 mb-3 border border-white/5 overflow-hidden">
                 <div id="transfer-progress-bar" class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]" style="width: 0%"></div>
             </div>
@@ -324,498 +314,15 @@
         </div>
     </div>
 
-    <!-- LÓGICA CORE: FIREBASE & WEBRTC (Evita bloqueos de Canvas) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Inicializar iconos
-        if (window.lucide) window.lucide.createIcons();
-
-        const PREFIX = "ecwebpro-";
-        const myRawCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digitos numéricos
-        const myPeerId = PREFIX + myRawCode;
-        
-        let activeConnection = null; // Canal de datos WebRTC
-        let rtcPeerConnection = null;
-        let selectedFiles = [];
-        
-        // --- ANIMACIÓN DEL LOADER DE ESTALINGRADO ---
-        const splash = document.getElementById('splash');
-        const progressBar = document.getElementById('loading-progress-bar');
-        const percentText = document.getElementById('loading-percent');
-        
-        let startAnimTime = null; 
-        const duration = 1800; // 1.8 segundos
-        
-        function animateLoader(timestamp) {
-            if(!startAnimTime) startAnimTime = timestamp; 
-            const elapsed = timestamp - startAnimTime; 
-            const progress = Math.min((elapsed / duration) * 100, 100);
-            
-            if(progressBar) progressBar.style.width = progress + '%'; 
-            if(percentText) percentText.textContent = Math.floor(progress) + '%';
-            
-            if(progress < 100) {
-                requestAnimationFrame(animateLoader);
-            } else {
-                setTimeout(() => {
-                    if(splash) {
-                        splash.style.opacity = '0';
-                        setTimeout(() => splash.classList.add('hidden'), 700);
-                    }
-                }, 300);
-            }
-        }
-        requestAnimationFrame(animateLoader);
-
-        // --- INICIALIZACIÓN UI BÁSICA ---
-        document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
-
-        const currentURL = window.location.href.split('?')[0] + `?connect=${myRawCode}`;
-        new window.QRious({
-            element: document.getElementById('qr-canvas'),
-            value: currentURL,
-            size: 200,
-            background: '#ffffff',
-            foreground: '#09090b',
-            level: 'M'
-        });
-
-        const dropZone = document.getElementById('drop-zone');
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-zinc-800/80'); });
-        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-primary', 'bg-zinc-800/80'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-primary', 'bg-zinc-800/80');
-            if(e.dataTransfer.files.length) {
-                addFiles(Array.from(e.dataTransfer.files));
-            }
-        });
-
-        // --- SISTEMA WEBRTC SOBRE FIRESTORE (Evita CSP WebSocket Error) ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        let app, auth, db;
-        
-        try {
-            if (Object.keys(firebaseConfig).length > 0) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-            } else {
-                console.warn("Modo Offline.");
-                document.getElementById('status-text').innerText = "Modo Offline";
-                document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-red-500');
-            }
-        } catch (e) {
-            console.error("Error Firebase:", e);
-        }
-
-        const rtcConfig = { 
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.cloudflare.com:3478' }
-            ] 
-        };
-
-        const initAuth = async () => {
-            if (!auth) return;
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        initAuth();
-
-        if (auth) {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
-                    document.getElementById('status-dot').classList.replace('shadow-[0_0_8px_rgba(234,179,8,0.8)]', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
-                    document.getElementById('status-text').innerText = "En Línea (Global)";
-                    
-                    startSignalingListener();
-                    checkURLParams();
-                }
-            });
-        } else {
-            setTimeout(checkURLParams, 500);
-        }
-
-        function checkURLParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const connectCode = urlParams.get('connect');
-            if (connectCode && connectCode !== myRawCode) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-                window.switchView('send');
-                document.getElementById('target-code').value = connectCode;
-                setTimeout(() => window.connectToPeer(), 800);
-            }
-        }
-
-        async function sendSignal(type, targetCode, payload) {
-            if (!auth || !auth.currentUser || !db) return;
-            const signalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'signals');
-            await addDoc(signalsCol, {
-                type: type,
-                sender: myPeerId,
-                receiver: PREFIX + targetCode,
-                payload: JSON.stringify(payload),
-                timestamp: Date.now()
-            });
-        }
-
-        function startSignalingListener() {
-            if (!db) return;
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'signals'), (snapshot) => {
-                snapshot.docChanges().forEach(async (change) => {
-                    if (change.type === 'added') {
-                        const data = change.doc.data();
-                        if (data.receiver === myPeerId && (Date.now() - data.timestamp < 30000)) {
-                            await deleteDoc(change.doc.ref).catch(e => console.warn(e));
-                            handleIncomingSignal(data);
-                        }
-                    }
-                });
-            });
-        }
-
-        function createPeerConnection(targetCode) {
-            if (rtcPeerConnection) rtcPeerConnection.close();
-            rtcPeerConnection = new RTCPeerConnection(rtcConfig);
-
-            rtcPeerConnection.onicecandidate = (event) => {
-                if (event.candidate) sendSignal('candidate', targetCode, event.candidate);
-            };
-
-            rtcPeerConnection.ondatachannel = (event) => {
-                setupDataChannel(event.channel);
-                showToast(`Dispositivo conectado.`, 'success');
-                updateUIConnected();
-            };
-
-            rtcPeerConnection.onconnectionstatechange = () => {
-                if (['disconnected', 'failed', 'closed'].includes(rtcPeerConnection.connectionState)) {
-                    resetConnectionUI();
-                    showToast('Conexión finalizada.', 'info');
-                }
-            };
-
-            return rtcPeerConnection;
-        }
-
-        async function handleIncomingSignal(data) {
-            const senderCode = data.sender.replace(PREFIX, '');
-            const payload = JSON.parse(data.payload);
-
-            if (data.type === 'offer') {
-                const pc = createPeerConnection(senderCode);
-                await pc.setRemoteDescription(new RTCSessionDescription(payload));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                await sendSignal('answer', senderCode, answer);
-            } else if (data.type === 'answer') {
-                if (rtcPeerConnection) {
-                    await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(payload));
-                }
-            } else if (data.type === 'candidate') {
-                if (rtcPeerConnection) {
-                    try {
-                        await rtcPeerConnection.addIceCandidate(new RTCIceCandidate(payload));
-                    } catch (e) {}
-                }
-            }
-        }
-
-        window.connectToPeer = async () => {
-            const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
-            if (input.length !== 6) { showToast('El código debe tener 6 dígitos.', 'error'); return; }
-            if (input === myRawCode) { showToast('No puedes conectarte a ti mismo.', 'error'); return; }
-
-            const btn = document.getElementById('btn-connect');
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
-            if (window.lucide) window.lucide.createIcons();
-
-            const pc = createPeerConnection(input);
-            const dc = pc.createDataChannel('fileTransfer');
-            dc.binaryType = 'arraybuffer';
-            
-            setupDataChannel(dc);
-            
-            dc.onopen = () => {
-                showToast('¡Enlazado exitosamente!', 'success');
-                updateUIConnected();
-            };
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            await sendSignal('offer', input, offer);
-        };
-
-        // --- MANEJO DE LA CONEXIÓN DE DATOS ---
-        let incomingFileInfo = null;
-        let incomingData = [];
-        let incomingBytes = 0;
-
-        function setupDataChannel(channel) {
-            activeConnection = channel;
-            
-            channel.onmessage = (event) => {
-                if (typeof event.data === 'string') {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'header') {
-                        incomingFileInfo = msg;
-                        incomingData = [];
-                        incomingBytes = 0;
-                        openTransferModal(msg.name, msg.size, 'receive');
-                    } else if (msg.type === 'eof') {
-                        finishReceivingFile();
-                    }
-                } else {
-                    incomingData.push(event.data);
-                    incomingBytes += event.data.byteLength;
-                    if (incomingFileInfo) updateTransferProgress(incomingBytes, incomingFileInfo.size);
-                }
-            };
-
-            channel.onclose = () => {
-                resetConnectionUI();
-            };
-        }
-
-        function updateUIConnected() {
-            const btn = document.getElementById('btn-connect');
-            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
-            btn.classList.replace('bg-primary', 'bg-green-600');
-            btn.classList.replace('shadow-[0_0_15px_rgba(14,165,233,0.4)]', 'shadow-[0_0_15px_rgba(34,197,94,0.4)]');
-            document.getElementById('connection-status').classList.remove('hidden');
-            document.getElementById('connection-status').classList.add('flex');
-            if (window.lucide) window.lucide.createIcons();
-            updateSendButton();
-        }
-
-        function resetConnectionUI() {
-            const btn = document.getElementById('btn-connect');
-            btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
-            btn.classList.replace('bg-green-600', 'bg-primary');
-            btn.classList.replace('shadow-[0_0_15px_rgba(34,197,94,0.4)]', 'shadow-[0_0_15px_rgba(14,165,233,0.4)]');
-            document.getElementById('connection-status').classList.add('hidden');
-            document.getElementById('connection-status').classList.remove('flex');
-            if (window.lucide) window.lucide.createIcons();
-            activeConnection = null;
-            updateSendButton();
-        }
-
-        // --- SISTEMA DE ENVÍO DE ARCHIVOS EN CHUNKS ---
-        document.getElementById('file-input').addEventListener('change', (e) => {
-            if(e.target.files.length) addFiles(Array.from(e.target.files));
-            e.target.value = ''; // Reset
-        });
-
-        function addFiles(files) {
-            selectedFiles = [...selectedFiles, ...files];
-            renderFileList();
-        }
-
-        window.removeFile = (index) => {
-            selectedFiles.splice(index, 1);
-            renderFileList();
-        }
-
-        window.clearSelection = () => {
-            selectedFiles = [];
-            renderFileList();
-        }
-
-        function renderFileList() {
-            const list = document.getElementById('list-selected');
-            const clearBtn = document.getElementById('btn-clear-files');
-            list.innerHTML = '';
-            
-            if (selectedFiles.length > 0) clearBtn.classList.remove('hidden');
-            else clearBtn.classList.add('hidden');
-
-            selectedFiles.forEach((file, idx) => {
-                const li = document.createElement('li');
-                li.className = "flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-white/5";
-                const size = (file.size / (1024*1024)).toFixed(2);
-                li.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <i data-lucide="file-text" class="w-5 h-5 text-primary shrink-0"></i>
-                        <div class="truncate">
-                            <p class="text-sm font-medium text-zinc-200 truncate">${file.name}</p>
-                            <p class="text-[10px] text-zinc-500">${size} MB</p>
-                        </div>
-                    </div>
-                    <button onclick="window.removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 transition-colors shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
-                `;
-                list.appendChild(li);
-            });
-            if (window.lucide) window.lucide.createIcons();
-            updateSendButton();
-        }
-
-        function updateSendButton() {
-            const btn = document.getElementById('btn-send');
-            if (selectedFiles.length > 0 && activeConnection && activeConnection.readyState === 'open') {
-                btn.disabled = false;
-                btn.className = "w-full py-4 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)] active:scale-95";
-            } else {
-                btn.disabled = true;
-                btn.className = "w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed";
-            }
-        }
-
-        window.sendSelectedFiles = async () => {
-            if (!activeConnection || activeConnection.readyState !== 'open' || selectedFiles.length === 0) return;
-            
-            const file = selectedFiles[0]; 
-            openTransferModal(file.name, file.size, 'send');
-            
-            activeConnection.send(JSON.stringify({
-                type: 'header',
-                name: file.name,
-                size: file.size,
-                mime: file.type
-            }));
-
-            const chunkSize = 64 * 1024; 
-            let offset = 0;
-            
-            const readNextChunk = () => {
-                const slice = file.slice(offset, offset + chunkSize);
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    activeConnection.send(e.target.result);
-                    offset += e.target.result.byteLength;
-                    updateTransferProgress(offset, file.size);
-                    
-                    if (offset < file.size) {
-                        setTimeout(readNextChunk, 5); 
-                    } else {
-                        activeConnection.send(JSON.stringify({ type: 'eof' }));
-                        finishSendingFile();
-                    }
-                };
-                reader.readAsArrayBuffer(slice);
-            };
-
-            setTimeout(readNextChunk, 100);
-        }
-
-        // --- INTERFAZ TRANSFERENCIA MODAL ---
-        function openTransferModal(filename, size, mode) {
-            document.getElementById('modal-transfer').classList.remove('hidden');
-            document.getElementById('btn-transfer-close').classList.add('hidden');
-            
-            document.getElementById('transfer-filename').innerText = filename;
-            document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
-            
-            const icon = document.getElementById('transfer-icon');
-            icon.setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
-            if (window.lucide) window.lucide.createIcons();
-
-            updateTransferProgress(0, size);
-        }
-
-        function updateTransferProgress(current, total) {
-            const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-            const currentMB = (current / (1024*1024)).toFixed(1);
-            const totalMB = (total / (1024*1024)).toFixed(1);
-
-            document.getElementById('transfer-progress-bar').style.width = percent + '%';
-            document.getElementById('transfer-percent').innerText = percent + '%';
-            document.getElementById('transfer-size-info').innerText = `${currentMB} MB / ${totalMB} MB`;
-        }
-
-        function finishSendingFile() {
-            document.getElementById('transfer-title').innerText = '¡Enviado con éxito!';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            if (window.lucide) window.lucide.createIcons();
-            document.getElementById('transfer-icon-container').classList.replace('text-primary', 'text-green-400');
-            document.getElementById('transfer-icon-container').classList.replace('bg-primary/10', 'bg-green-500/10');
-            document.getElementById('transfer-progress-bar').classList.replace('from-primary', 'from-green-500');
-            document.getElementById('transfer-progress-bar').classList.replace('to-secondary', 'to-green-400');
-            
-            document.getElementById('btn-transfer-close').classList.remove('hidden');
-            
-            selectedFiles.shift();
-            renderFileList();
-        }
-
-        function finishReceivingFile() {
-            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            if (window.lucide) window.lucide.createIcons();
-            document.getElementById('transfer-progress-bar').style.width = '100%';
-            
-            document.getElementById('btn-transfer-close').classList.remove('hidden');
-
-            const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
-            const url = URL.createObjectURL(blob);
-            
-            addToReceivedList(incomingFileInfo.name, incomingFileInfo.size, url);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = incomingFileInfo.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        window.closeTransferModal = () => {
-            document.getElementById('modal-transfer').classList.add('hidden');
-            setTimeout(() => {
-                document.getElementById('transfer-icon-container').className = "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce";
-                document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
-            }, 500);
-        }
-
-        let receivedCount = 0;
-        function addToReceivedList(name, size, url) {
-            document.getElementById('empty-received').classList.add('hidden');
-            document.getElementById('badge-received').classList.remove('hidden');
-            
-            receivedCount++;
-            document.getElementById('badge-received').innerText = receivedCount;
-
-            const list = document.getElementById('list-received');
-            const li = document.createElement('li');
-            li.className = "flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 hover:bg-zinc-800 transition-colors group";
-            
-            const sizeMB = (size / (1024*1024)).toFixed(2);
-            li.innerHTML = `
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="p-2 bg-green-500/10 rounded-lg text-green-400 shrink-0">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                    </div>
-                    <div class="truncate">
-                        <p class="text-sm font-semibold text-zinc-200 truncate">${name}</p>
-                        <p class="text-[10px] text-zinc-500">${sizeMB} MB</p>
-                    </div>
-                </div>
-                <a href="${url}" download="${name}" class="p-2 text-primary hover:text-white bg-primary/10 hover:bg-primary rounded-lg transition-all shrink-0">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                </a>
-            `;
-            list.prepend(li);
-            if (window.lucide) window.lucide.createIcons();
-        }
-
-        // --- UI MENOR Y TOASTS ---
-        window.switchView = (targetView) => {
+    <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
+    <script>
+        // 1. REGISTRAR FUNCIONES DE INTERFAZ PRIMERO PARA QUE NUNCA FALLEN
+        window.switchView = function(targetView) {
             ['receive', 'send', 'settings'].forEach(view => {
                 const section = document.getElementById(`view-${view}`);
                 const navBtn = document.getElementById(`nav-${view}`);
                 const indicator = document.getElementById(`indicator-${view}`);
+                if (!section || !navBtn) return;
                 
                 if (view === targetView) {
                     section.classList.remove('translate-x-full', '-translate-x-full');
@@ -827,7 +334,6 @@
                     const currIndex = ['receive', 'send', 'settings'].indexOf(view);
                     section.classList.remove('translate-x-full', '-translate-x-full');
                     section.classList.add(currIndex < targetIndex ? '-translate-x-full' : 'translate-x-full');
-                    
                     navBtn.classList.add('text-zinc-500');
                     navBtn.classList.remove('text-primary');
                     indicator.classList.add('opacity-0');
@@ -835,10 +341,9 @@
             });
         };
 
-        function showToast(message, type = 'info') {
+        window.showToast = function(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            
             let colorClass = 'border-primary/50 text-primary';
             let icon = 'info';
             if (type === 'success') { colorClass = 'border-green-500/50 text-green-400'; icon = 'check-circle'; }
@@ -856,30 +361,299 @@
                 toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
-        }
+        };
 
-        window.toggleQRModal = () => {
-            const modal = document.getElementById('modal-qr');
-            modal.classList.toggle('hidden');
+        window.toggleQRModal = () => document.getElementById('modal-qr').classList.toggle('hidden');
+        window.closeTransferModal = () => {
+            document.getElementById('modal-transfer').classList.add('hidden');
+            setTimeout(() => {
+                document.getElementById('transfer-icon-container').className = "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce";
+                document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
+            }, 500);
+        };
+
+        // 2. INICIALIZAR VARIABLES Y UI
+        if (window.lucide) window.lucide.createIcons();
+        const PREFIX = "ecwebpro-";
+        const myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const myPeerId = PREFIX + myRawCode;
+        
+        let peer = null;
+        let activeConnection = null;
+        let selectedFiles = [];
+
+        document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
+
+        // Loader Animación
+        const splash = document.getElementById('splash');
+        const progressBar = document.getElementById('loading-progress-bar');
+        const percentText = document.getElementById('loading-percent');
+        let startAnimTime = null; 
+        function animateLoader(timestamp) {
+            if(!startAnimTime) startAnimTime = timestamp; 
+            const elapsed = timestamp - startAnimTime; 
+            const progress = Math.min((elapsed / 1800) * 100, 100);
+            if(progressBar) progressBar.style.width = progress + '%'; 
+            if(percentText) percentText.textContent = Math.floor(progress) + '%';
+            
+            if(progress < 100) requestAnimationFrame(animateLoader);
+            else setTimeout(() => { if(splash) { splash.style.opacity = '0'; setTimeout(() => splash.classList.add('hidden'), 700); } }, 300);
+        }
+        requestAnimationFrame(animateLoader);
+
+        // Generar QR
+        if (window.QRious) {
+            new window.QRious({
+                element: document.getElementById('qr-canvas'),
+                value: window.location.href.split('?')[0] + `?connect=${myRawCode}`,
+                size: 200, background: '#ffffff', foreground: '#09090b', level: 'M'
+            });
         }
 
         window.copyMyCode = () => {
-            navigator.clipboard.writeText(myRawCode).then(() => {
-                showToast('Código copiado al portapapeles', 'success');
-            }).catch(() => {
-                const textArea = document.createElement("textarea");
-                textArea.value = myRawCode;
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast('Código copiado al portapapeles', 'success');
-                } catch (err) {
-                    showToast('No se pudo copiar', 'error');
-                }
-                document.body.removeChild(textArea);
+            navigator.clipboard.writeText(myRawCode).then(() => window.showToast('Código copiado', 'success'))
+            .catch(() => {
+                const ta = document.createElement("textarea"); ta.value = myRawCode; document.body.appendChild(ta);
+                ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                window.showToast('Código copiado', 'success');
             });
+        };
+
+        // 3. INICIAR PEERJS (Cuidado con los bloqueos de Canvas)
+        function initPeer() {
+            try {
+                if (typeof Peer === 'undefined') {
+                    console.warn("PeerJS no cargó."); return;
+                }
+                peer = new Peer(myPeerId, {
+                    debug: 2,
+                    config: {'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]}
+                });
+
+                peer.on('open', (id) => {
+                    document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
+                    document.getElementById('status-text').innerText = "En Línea (Global)";
+                    checkURLParams();
+                });
+
+                peer.on('connection', (conn) => {
+                    setupConnection(conn);
+                    window.showToast(`Dispositivo vinculado`, 'success');
+                });
+
+                peer.on('error', (err) => {
+                    console.error("Peer Error:", err);
+                    if (err.type === 'peer-unavailable') window.showToast('Dispositivo no encontrado.', 'error');
+                    resetConnectionUI();
+                });
+            } catch (e) {
+                console.warn("Entorno bloqueó PeerJS:", e);
+            }
+        }
+        setTimeout(initPeer, 800);
+
+        function checkURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const connectCode = urlParams.get('connect');
+            if (connectCode && connectCode !== myRawCode) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                window.switchView('send');
+                document.getElementById('target-code').value = connectCode;
+                setTimeout(() => window.connectToPeer(), 800);
+            }
+        }
+
+        window.connectToPeer = () => {
+            if (!peer) return window.showToast('Servidor no disponible', 'error');
+            const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
+            if (input.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
+            if (input === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
+
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
+            if (window.lucide) window.lucide.createIcons();
+
+            const conn = peer.connect(PREFIX + input, { reliable: true });
+            conn.on('open', () => {
+                setupConnection(conn);
+                window.showToast('¡Enlazado exitosamente!', 'success');
+                updateUIConnected();
+            });
+        };
+
+        // 4. LÓGICA DE ARCHIVOS
+        let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
+
+        function setupConnection(conn) {
+            activeConnection = conn;
+            conn.on('data', (data) => {
+                if (typeof data === 'string') {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'header') {
+                        incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
+                        openTransferModal(msg.name, msg.size, 'receive');
+                    } else if (msg.type === 'eof') finishReceivingFile();
+                } else {
+                    incomingData.push(data); incomingBytes += data.byteLength;
+                    if (incomingFileInfo) updateTransferProgress(incomingBytes, incomingFileInfo.size);
+                }
+            });
+            conn.on('close', () => {
+                window.showToast('El dispositivo se desconectó.', 'info');
+                resetConnectionUI();
+            });
+        }
+
+        function updateUIConnected() {
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
+            btn.classList.replace('bg-primary', 'bg-green-600');
+            document.getElementById('connection-status').classList.remove('hidden');
+            document.getElementById('connection-status').classList.add('flex');
+            if (window.lucide) window.lucide.createIcons();
+            updateSendButton();
+        }
+
+        function resetConnectionUI() {
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
+            btn.classList.replace('bg-green-600', 'bg-primary');
+            document.getElementById('connection-status').classList.add('hidden');
+            document.getElementById('connection-status').classList.remove('flex');
+            if (window.lucide) window.lucide.createIcons();
+            activeConnection = null;
+            updateSendButton();
+        }
+
+        // Dropzone & Input
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-zinc-800/80'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-zinc-800/80'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('bg-zinc-800/80');
+            if(e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
+        });
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            if(e.target.files.length) addFiles(Array.from(e.target.files));
+            e.target.value = '';
+        });
+
+        function addFiles(files) { selectedFiles = [...selectedFiles, ...files]; renderFileList(); }
+        window.removeFile = (index) => { selectedFiles.splice(index, 1); renderFileList(); };
+        window.clearSelection = () => { selectedFiles = []; renderFileList(); };
+
+        function renderFileList() {
+            const list = document.getElementById('list-selected');
+            const clearBtn = document.getElementById('btn-clear-files');
+            list.innerHTML = '';
+            clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
+
+            selectedFiles.forEach((file, idx) => {
+                const size = (file.size / (1024*1024)).toFixed(2);
+                list.innerHTML += `
+                    <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-white/5">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <i data-lucide="file-text" class="w-5 h-5 text-primary shrink-0"></i>
+                            <div class="truncate">
+                                <p class="text-sm font-medium text-zinc-200 truncate">${file.name}</p>
+                                <p class="text-[10px] text-zinc-500">${size} MB</p>
+                            </div>
+                        </div>
+                        <button onclick="window.removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </li>`;
+            });
+            if (window.lucide) window.lucide.createIcons();
+            updateSendButton();
+        }
+
+        function updateSendButton() {
+            const btn = document.getElementById('btn-send');
+            if (selectedFiles.length > 0 && activeConnection && activeConnection.open) {
+                btn.disabled = false;
+                btn.className = "w-full py-4 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)] active:scale-95";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+            }
+        }
+
+        window.sendSelectedFiles = () => {
+            if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
+            const file = selectedFiles[0]; 
+            openTransferModal(file.name, file.size, 'send');
+            activeConnection.send(JSON.stringify({ type: 'header', name: file.name, size: file.size, mime: file.type }));
+
+            const chunkSize = 64 * 1024; let offset = 0;
+            const readNextChunk = () => {
+                const slice = file.slice(offset, offset + chunkSize);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    activeConnection.send(e.target.result);
+                    offset += e.target.result.byteLength;
+                    updateTransferProgress(offset, file.size);
+                    if (offset < file.size) setTimeout(readNextChunk, 5); 
+                    else { activeConnection.send(JSON.stringify({ type: 'eof' })); finishSendingFile(); }
+                };
+                reader.readAsArrayBuffer(slice);
+            };
+            setTimeout(readNextChunk, 100);
+        };
+
+        // 5. MODAL PROGRESO
+        function openTransferModal(filename, size, mode) {
+            document.getElementById('modal-transfer').classList.remove('hidden');
+            document.getElementById('btn-transfer-close').classList.add('hidden');
+            document.getElementById('transfer-filename').innerText = filename;
+            document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
+            if (window.lucide) window.lucide.createIcons();
+            updateTransferProgress(0, size);
+        }
+
+        function updateTransferProgress(current, total) {
+            const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            document.getElementById('transfer-progress-bar').style.width = percent + '%';
+            document.getElementById('transfer-percent').innerText = percent + '%';
+            document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
+        }
+
+        function finishSendingFile() {
+            document.getElementById('transfer-title').innerText = '¡Enviado!';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            if (window.lucide) window.lucide.createIcons();
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
+            selectedFiles.shift(); renderFileList();
+        }
+
+        function finishReceivingFile() {
+            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            if (window.lucide) window.lucide.createIcons();
+            document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
+
+            const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
+            const url = URL.createObjectURL(blob);
+            
+            document.getElementById('empty-received').classList.add('hidden');
+            const list = document.getElementById('list-received');
+            list.innerHTML = `
+                <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="p-2 bg-green-500/10 rounded-lg text-green-400 shrink-0"><i data-lucide="check" class="w-4 h-4"></i></div>
+                        <div class="truncate">
+                            <p class="text-sm font-semibold text-zinc-200 truncate">${incomingFileInfo.name}</p>
+                            <p class="text-[10px] text-zinc-500">${(incomingFileInfo.size / (1024*1024)).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <a href="${url}" download="${incomingFileInfo.name}" class="p-2 text-primary bg-primary/10 rounded-lg"><i data-lucide="download" class="w-4 h-4"></i></a>
+                </li>` + list.innerHTML;
+            if (window.lucide) window.lucide.createIcons();
+
+            const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
         }
     </script>
 </body>
