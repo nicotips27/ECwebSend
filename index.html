@@ -330,8 +330,8 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Inicializar iconos básicos
-        window.lucide.createIcons();
+        // Inicializar iconos básicos evitando errores si la librería tarda en cargar
+        if (window.lucide) window.lucide.createIcons();
 
         const myRawCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digitos numéricos
         const myPeerId = myRawCode;
@@ -396,9 +396,23 @@
         // --- SISTEMA WEBRTC SOBRE FIRESTORE ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        
+        let app, auth, db;
+        
+        // Bloque Try/Catch para evitar que la interfaz se congele si falta Firebase en GitHub Pages
+        try {
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } else {
+                console.warn("Falta configuración de Firebase. Interfaz en modo offline.");
+                document.getElementById('status-text').innerText = "Modo Offline (Sin BD)";
+                document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-red-500');
+            }
+        } catch (e) {
+            console.error("Error inicializando Firebase:", e);
+        }
         
         // --- CONFIGURACIÓN WEBRTC (MEJORADA PARA INTERNET) ---
         const rtcConfig = { 
@@ -411,6 +425,7 @@
         };
 
         const initAuth = async () => {
+            if (!auth) return; // Salir si no hay Auth configurado
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                 await signInWithCustomToken(auth, __initial_auth_token);
             } else {
@@ -420,16 +435,21 @@
 
         initAuth();
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
-                document.getElementById('status-dot').classList.replace('shadow-[0_0_8px_rgba(234,179,8,0.8)]', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
-                document.getElementById('status-text').innerText = "En Línea (Global)";
-                
-                startSignalingListener();
-                checkURLParams();
-            }
-        });
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
+                    document.getElementById('status-dot').classList.replace('shadow-[0_0_8px_rgba(234,179,8,0.8)]', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
+                    document.getElementById('status-text').innerText = "En Línea (Global)";
+                    
+                    startSignalingListener();
+                    checkURLParams();
+                }
+            });
+        } else {
+            // Aún en modo offline, procesamos los parámetros por si acaso
+            setTimeout(checkURLParams, 500);
+        }
 
         function checkURLParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -443,7 +463,7 @@
         }
 
         async function sendSignal(type, targetCode, payload) {
-            if (!auth.currentUser) return;
+            if (!auth || !auth.currentUser || !db) return; // Validación extra
             const signalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'signals');
             await addDoc(signalsCol, {
                 type: type,
@@ -455,6 +475,7 @@
         }
 
         function startSignalingListener() {
+            if (!db) return; // Validación extra
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'signals'), (snapshot) => {
                 snapshot.docChanges().forEach(async (change) => {
                     if (change.type === 'added') {
