@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#09090b">
-    <title>ECwebSend Pro - P2P Transfer</title>
+    <title>ECwebSend Pro - P2P Transfer (Local & Web)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -36,9 +36,6 @@
     <!-- Icons & Tools -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-    
-    <!-- WebRTC PeerJS (Motor de conexión sin backend propio) -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -85,7 +82,7 @@
             </div>
         </div>
         <h1 class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text">ECwebSend</h1>
-        <p class="text-zinc-500 mt-2 text-sm font-medium tracking-wide">Iniciando protocolo P2P...</p>
+        <p class="text-zinc-500 mt-2 text-sm font-medium tracking-wide">Iniciando protocolo P2P Global...</p>
     </div>
 
     <!-- TOAST NOTIFICATIONS -->
@@ -95,13 +92,13 @@
     <header class="glass-panel px-5 py-4 flex justify-between items-center z-10 shrink-0 border-b border-white/5">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg">
-                <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+                <i data-lucide="globe-2" class="w-5 h-5 text-primary"></i>
             </div>
             <div>
                 <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECwebSend <span class="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-md ml-1">PRO</span></h1>
                 <div class="flex items-center gap-1.5 mt-1">
                     <span id="status-dot" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
-                    <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Conectando...</span>
+                    <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Conectando Global...</span>
                 </div>
             </div>
         </div>
@@ -129,14 +126,14 @@
                 </div>
 
                 <div class="mt-8 text-center glass-panel p-5 rounded-3xl w-full max-w-sm">
-                    <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Mi Código de Acceso</p>
+                    <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-2">Mi Código (Local e Internet)</p>
                     <div class="flex items-center justify-center gap-3">
                         <div id="my-code" class="text-4xl font-black tracking-[0.2em] text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">------</div>
                         <button onclick="copyMyCode()" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 transition-colors">
                             <i data-lucide="copy" class="w-5 h-5"></i>
                         </button>
                     </div>
-                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el código QR para que otros dispositivos se conecten directamente a ti.</p>
+                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código. Funciona tanto si están en el mismo WiFi como si están a miles de kilómetros.</p>
                 </div>
             </div>
 
@@ -212,11 +209,11 @@
             <div class="space-y-4">
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
                     <div>
-                        <p class="font-semibold text-sm text-zinc-200">Protocolo WebRTC</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">PeerJS Network</p>
+                        <p class="font-semibold text-sm text-zinc-200">Protocolo WebRTC Global</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Múltiples STUNs Activos</p>
                     </div>
                     <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
+                        <i data-lucide="globe" class="w-4 h-4 text-green-400"></i>
                     </div>
                 </div>
 
@@ -232,8 +229,8 @@
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <i data-lucide="zap" class="w-8 h-8 opacity-50"></i>
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v3.0</p>
-                    <p class="text-[10px] text-center max-w-[200px]">Desarrollado para transferencias locales ultrarrápidas y seguras sin intermediarios.</p>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v3.5</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Optimizada para transferencias a través de Internet (WAN) y redes locales (LAN).</p>
                 </div>
             </div>
         </section>
@@ -306,185 +303,225 @@
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
+    <!-- LÓGICA CORE: FIREBASE & WEBRTC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- SISTEMA CORE: VARIABLES ---
-        const PREFIX = "ecwebpro-";
+        // Inicializar iconos básicos
+        window.lucide.createIcons();
+
         const myRawCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digitos numéricos
-        const myPeerId = PREFIX + myRawCode;
+        const myPeerId = myRawCode;
         
-        let peer = null;
-        let activeConnection = null;
+        let activeConnection = null; // Canal de datos WebRTC
+        let rtcPeerConnection = null;
         let selectedFiles = [];
         
         // --- INICIALIZACIÓN DE UI ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Splash Screen Hide
-            setTimeout(() => {
-                const splash = document.getElementById('splash');
+        setTimeout(() => {
+            const splash = document.getElementById('splash');
+            if(splash) {
                 splash.style.opacity = '0';
                 setTimeout(() => splash.classList.add('hidden'), 700);
-            }, 1500);
+            }
+        }, 1500);
 
-            // Set Code UI
-            document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
+        document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
-            // Generar QR
-            const currentURL = window.location.href.split('?')[0] + `?connect=${myRawCode}`;
-            new QRious({
-                element: document.getElementById('qr-canvas'),
-                value: currentURL,
-                size: 200,
-                background: '#ffffff',
-                foreground: '#09090b',
-                level: 'M'
-            });
-
-            // Drag and Drop
-            const dropZone = document.getElementById('drop-zone');
-            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-zinc-800/80'); });
-            dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-primary', 'bg-zinc-800/80'); });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-primary', 'bg-zinc-800/80');
-                if(e.dataTransfer.files.length) {
-                    addFiles(Array.from(e.dataTransfer.files));
-                }
-            });
-
-            // Inicializar WebRTC (PeerJS)
-            initPeer();
+        const currentURL = window.location.href.split('?')[0] + `?connect=${myRawCode}`;
+        new QRious({
+            element: document.getElementById('qr-canvas'),
+            value: currentURL,
+            size: 200,
+            background: '#ffffff',
+            foreground: '#09090b',
+            level: 'M'
         });
 
-        // --- NAVEGACIÓN VISTAS ---
-        const views = ['receive', 'send', 'settings'];
-        window.switchView = (targetView) => {
-            views.forEach(view => {
-                const section = document.getElementById(`view-${view}`);
-                const navBtn = document.getElementById(`nav-${view}`);
-                const indicator = document.getElementById(`indicator-${view}`);
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-zinc-800/80'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-primary', 'bg-zinc-800/80'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-zinc-800/80');
+            if(e.dataTransfer.files.length) {
+                addFiles(Array.from(e.dataTransfer.files));
+            }
+        });
+
+        // --- SISTEMA WEBRTC SOBRE FIRESTORE ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // --- CONFIGURACIÓN WEBRTC (MEJORADA PARA INTERNET) ---
+        const rtcConfig = { 
+            iceServers: [
+                // Estos servidores STUN de Google y Cloudflare ayudan a los dispositivos 
+                // a descubrir su IP pública en Internet.
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' }
                 
-                if (view === targetView) {
-                    section.classList.remove('translate-x-full', '-translate-x-full');
-                    navBtn.classList.remove('text-zinc-500');
-                    navBtn.classList.add('text-primary');
-                    indicator.classList.remove('opacity-0');
-                } else {
-                    const targetIndex = views.indexOf(targetView);
-                    const currIndex = views.indexOf(view);
-                    section.classList.remove('translate-x-full', '-translate-x-full');
-                    section.classList.add(currIndex < targetIndex ? '-translate-x-full' : 'translate-x-full');
-                    
-                    navBtn.classList.add('text-zinc-500');
-                    navBtn.classList.remove('text-primary');
-                    indicator.classList.add('opacity-0');
-                }
-            });
+                // NOTA SOBRE SERVIDORES TURN (Para 100% de fiabilidad en redes estrictas):
+                // Si alguna red empresarial o red móvil estricta bloquea la conexión P2P,
+                // deberás agregar un servidor TURN aquí (es de pago o requiere registro).
+                // Ejemplo:
+                // {
+                //     urls: "turn:tu-servidor-turn.com:3478",
+                //     username: "usuario",
+                //     credential: "password"
+                // }
+            ] 
         };
 
-        // --- TOAST NOTIFICATIONS ---
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            let colorClass = 'border-primary/50 text-primary';
-            let icon = 'info';
-            if (type === 'success') { colorClass = 'border-green-500/50 text-green-400'; icon = 'check-circle'; }
-            if (type === 'error') { colorClass = 'border-red-500/50 text-red-400'; icon = 'alert-circle'; }
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
 
-            toast.className = `glass-panel px-4 py-3 rounded-xl border-l-4 ${colorClass} flex items-center gap-3 text-sm font-medium animate-slide-up bg-zinc-900/90`;
-            toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i> <span>${message}</span>`;
-            
-            container.appendChild(toast);
-            lucide.createIcons();
+        initAuth();
 
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-10px)';
-                toast.style.transition = 'all 0.3s ease';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // --- SISTEMA WEBRTC (PEERJS) ---
-        function initPeer() {
-            // Conectando al servidor público gratuito de PeerJS
-            peer = new Peer(myPeerId, {
-                debug: 1,
-                config: {'iceServers': [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
-                ]}
-            });
-
-            peer.on('open', (id) => {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
                 document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
                 document.getElementById('status-dot').classList.replace('shadow-[0_0_8px_rgba(234,179,8,0.8)]', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
-                document.getElementById('status-text').innerText = "En Línea";
+                document.getElementById('status-text').innerText = "En Línea (Global)";
                 
-                // Comprobar Auto-Connect por URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const connectCode = urlParams.get('connect');
-                if (connectCode && connectCode !== myRawCode) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    switchView('send');
-                    document.getElementById('target-code').value = connectCode;
-                    setTimeout(() => connectToPeer(), 800);
-                }
-            });
+                startSignalingListener();
+                checkURLParams();
+            }
+        });
 
-            peer.on('connection', (conn) => {
-                setupConnection(conn);
-                showToast(`Dispositivo conectado: ${conn.peer.replace(PREFIX, '')}`, 'success');
-            });
+        function checkURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const connectCode = urlParams.get('connect');
+            if (connectCode && connectCode !== myRawCode) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                window.switchView('send');
+                document.getElementById('target-code').value = connectCode;
+                setTimeout(() => window.connectToPeer(), 800);
+            }
+        }
 
-            peer.on('error', (err) => {
-                console.error("Peer Error:", err);
-                showToast(err.type === 'peer-unavailable' ? 'Dispositivo no encontrado.' : 'Error de conexión.', 'error');
-                resetConnectionUI();
+        async function sendSignal(type, targetCode, payload) {
+            if (!auth.currentUser) return;
+            const signalsCol = collection(db, 'artifacts', appId, 'public', 'data', 'signals');
+            await addDoc(signalsCol, {
+                type: type,
+                sender: myPeerId,
+                receiver: targetCode,
+                payload: JSON.stringify(payload),
+                timestamp: Date.now()
             });
         }
 
-        function connectToPeer() {
+        function startSignalingListener() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'signals'), (snapshot) => {
+                snapshot.docChanges().forEach(async (change) => {
+                    if (change.type === 'added') {
+                        const data = change.doc.data();
+                        if (data.receiver === myPeerId && (Date.now() - data.timestamp < 30000)) {
+                            await deleteDoc(change.doc.ref).catch(e => console.warn(e));
+                            handleIncomingSignal(data);
+                        }
+                    }
+                });
+            });
+        }
+
+        function createPeerConnection(targetCode) {
+            if (rtcPeerConnection) rtcPeerConnection.close();
+            rtcPeerConnection = new RTCPeerConnection(rtcConfig);
+
+            rtcPeerConnection.onicecandidate = (event) => {
+                if (event.candidate) sendSignal('candidate', targetCode, event.candidate);
+            };
+
+            // Solo se dispara en el cliente que recibe la oferta
+            rtcPeerConnection.ondatachannel = (event) => {
+                setupDataChannel(event.channel);
+                showToast(`Dispositivo conectado.`, 'success');
+                updateUIConnected();
+            };
+
+            rtcPeerConnection.onconnectionstatechange = () => {
+                if (['disconnected', 'failed', 'closed'].includes(rtcPeerConnection.connectionState)) {
+                    resetConnectionUI();
+                    showToast('Conexión finalizada.', 'info');
+                }
+            };
+
+            return rtcPeerConnection;
+        }
+
+        async function handleIncomingSignal(data) {
+            const senderCode = data.sender;
+            const payload = JSON.parse(data.payload);
+
+            if (data.type === 'offer') {
+                const pc = createPeerConnection(senderCode);
+                await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                await sendSignal('answer', senderCode, answer);
+            } else if (data.type === 'answer') {
+                if (rtcPeerConnection) {
+                    await rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(payload));
+                }
+            } else if (data.type === 'candidate') {
+                if (rtcPeerConnection) {
+                    try {
+                        await rtcPeerConnection.addIceCandidate(new RTCIceCandidate(payload));
+                    } catch (e) {}
+                }
+            }
+        }
+
+        window.connectToPeer = async () => {
             const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
             if (input.length !== 6) { showToast('El código debe tener 6 dígitos.', 'error'); return; }
             if (input === myRawCode) { showToast('No puedes conectarte a ti mismo.', 'error'); return; }
 
-            const targetPeerId = PREFIX + input;
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
-            lucide.createIcons();
+            window.lucide.createIcons();
 
-            const conn = peer.connect(targetPeerId, { reliable: true });
+            const pc = createPeerConnection(input);
+            const dc = pc.createDataChannel('fileTransfer');
+            dc.binaryType = 'arraybuffer';
             
-            conn.on('open', () => {
-                setupConnection(conn);
+            setupDataChannel(dc);
+            
+            dc.onopen = () => {
                 showToast('¡Enlazado exitosamente!', 'success');
-                
-                // Update UI
-                btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
-                btn.classList.replace('bg-primary', 'bg-green-600');
-                btn.classList.replace('shadow-[0_0_15px_rgba(14,165,233,0.4)]', 'shadow-[0_0_15px_rgba(34,197,94,0.4)]');
-                document.getElementById('connection-status').classList.remove('hidden');
-                document.getElementById('connection-status').classList.add('flex');
-                lucide.createIcons();
-                updateSendButton();
-            });
-        }
+                updateUIConnected();
+            };
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await sendSignal('offer', input, offer);
+        };
 
         // --- MANEJO DE LA CONEXIÓN DE DATOS ---
         let incomingFileInfo = null;
         let incomingData = [];
         let incomingBytes = 0;
 
-        function setupConnection(conn) {
-            activeConnection = conn;
+        function setupDataChannel(channel) {
+            activeConnection = channel;
             
-            conn.on('data', (data) => {
-                // Si es un objeto JSON (Metadata)
-                if (typeof data === 'string') {
-                    const msg = JSON.parse(data);
+            channel.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    const msg = JSON.parse(event.data);
                     if (msg.type === 'header') {
                         incomingFileInfo = msg;
                         incomingData = [];
@@ -493,23 +530,27 @@
                     } else if (msg.type === 'eof') {
                         finishReceivingFile();
                     }
-                } 
-                // Si es un ArrayBuffer (Fragmento de archivo)
-                else {
-                    incomingData.push(data);
-                    incomingBytes += data.byteLength;
-                    
-                    if (incomingFileInfo) {
-                        updateTransferProgress(incomingBytes, incomingFileInfo.size);
-                    }
+                } else {
+                    incomingData.push(event.data);
+                    incomingBytes += event.data.byteLength;
+                    if (incomingFileInfo) updateTransferProgress(incomingBytes, incomingFileInfo.size);
                 }
-            });
+            };
 
-            conn.on('close', () => {
-                activeConnection = null;
-                showToast('Dispositivo desconectado.', 'info');
+            channel.onclose = () => {
                 resetConnectionUI();
-            });
+            };
+        }
+
+        function updateUIConnected() {
+            const btn = document.getElementById('btn-connect');
+            btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
+            btn.classList.replace('bg-primary', 'bg-green-600');
+            btn.classList.replace('shadow-[0_0_15px_rgba(14,165,233,0.4)]', 'shadow-[0_0_15px_rgba(34,197,94,0.4)]');
+            document.getElementById('connection-status').classList.remove('hidden');
+            document.getElementById('connection-status').classList.add('flex');
+            window.lucide.createIcons();
+            updateSendButton();
         }
 
         function resetConnectionUI() {
@@ -519,7 +560,7 @@
             btn.classList.replace('shadow-[0_0_15px_rgba(34,197,94,0.4)]', 'shadow-[0_0_15px_rgba(14,165,233,0.4)]');
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
-            lucide.createIcons();
+            window.lucide.createIcons();
             activeConnection = null;
             updateSendButton();
         }
@@ -565,17 +606,17 @@
                             <p class="text-[10px] text-zinc-500">${size} MB</p>
                         </div>
                     </div>
-                    <button onclick="removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 transition-colors shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    <button onclick="window.removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 transition-colors shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                 `;
                 list.appendChild(li);
             });
-            lucide.createIcons();
+            window.lucide.createIcons();
             updateSendButton();
         }
 
         function updateSendButton() {
             const btn = document.getElementById('btn-send');
-            if (selectedFiles.length > 0 && activeConnection && activeConnection.open) {
+            if (selectedFiles.length > 0 && activeConnection && activeConnection.readyState === 'open') {
                 btn.disabled = false;
                 btn.className = "w-full py-4 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)] active:scale-95";
             } else {
@@ -584,9 +625,8 @@
             }
         }
 
-        // ENVÍO
         window.sendSelectedFiles = async () => {
-            if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
+            if (!activeConnection || activeConnection.readyState !== 'open' || selectedFiles.length === 0) return;
             
             const file = selectedFiles[0]; // Enviamos uno por uno en esta versión
             openTransferModal(file.name, file.size, 'send');
@@ -612,7 +652,6 @@
                     updateTransferProgress(offset, file.size);
                     
                     if (offset < file.size) {
-                        // Usar setTimeout pequeño evita bloquear el UI thread
                         setTimeout(readNextChunk, 5); 
                     } else {
                         activeConnection.send(JSON.stringify({ type: 'eof' }));
@@ -622,7 +661,6 @@
                 reader.readAsArrayBuffer(slice);
             };
 
-            // Iniciar lectura
             setTimeout(readNextChunk, 100);
         }
 
@@ -636,7 +674,7 @@
             
             const icon = document.getElementById('transfer-icon');
             icon.setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
-            lucide.createIcons();
+            window.lucide.createIcons();
 
             updateTransferProgress(0, size);
         }
@@ -654,7 +692,7 @@
         function finishSendingFile() {
             document.getElementById('transfer-title').innerText = '¡Enviado con éxito!';
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            lucide.createIcons();
+            window.lucide.createIcons();
             document.getElementById('transfer-icon-container').classList.replace('text-primary', 'text-green-400');
             document.getElementById('transfer-icon-container').classList.replace('bg-primary/10', 'bg-green-500/10');
             document.getElementById('transfer-progress-bar').classList.replace('from-primary', 'from-green-500');
@@ -662,7 +700,6 @@
             
             document.getElementById('btn-transfer-close').classList.remove('hidden');
             
-            // Remove sent file from list
             selectedFiles.shift();
             renderFileList();
         }
@@ -670,19 +707,16 @@
         function finishReceivingFile() {
             document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            lucide.createIcons();
+            window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
             
             document.getElementById('btn-transfer-close').classList.remove('hidden');
 
-            // Crear Blob y generar descarga
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
             const url = URL.createObjectURL(blob);
             
-            // Guardar en la UI de recibidos
             addToReceivedList(incomingFileInfo.name, incomingFileInfo.size, url);
 
-            // Auto-descargar usando un elemento A invisible
             const a = document.createElement('a');
             a.href = url;
             a.download = incomingFileInfo.name;
@@ -693,7 +727,6 @@
 
         window.closeTransferModal = () => {
             document.getElementById('modal-transfer').classList.add('hidden');
-            // Reset modal styles
             setTimeout(() => {
                 document.getElementById('transfer-icon-container').className = "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce";
                 document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
@@ -728,10 +761,57 @@
                 </a>
             `;
             list.prepend(li);
-            lucide.createIcons();
+            window.lucide.createIcons();
         }
 
-        // --- UTILIDADES MENORES ---
+        // --- UI MENOR Y TOASTS ---
+        window.switchView = (targetView) => {
+            ['receive', 'send', 'settings'].forEach(view => {
+                const section = document.getElementById(`view-${view}`);
+                const navBtn = document.getElementById(`nav-${view}`);
+                const indicator = document.getElementById(`indicator-${view}`);
+                
+                if (view === targetView) {
+                    section.classList.remove('translate-x-full', '-translate-x-full');
+                    navBtn.classList.remove('text-zinc-500');
+                    navBtn.classList.add('text-primary');
+                    indicator.classList.remove('opacity-0');
+                } else {
+                    const targetIndex = ['receive', 'send', 'settings'].indexOf(targetView);
+                    const currIndex = ['receive', 'send', 'settings'].indexOf(view);
+                    section.classList.remove('translate-x-full', '-translate-x-full');
+                    section.classList.add(currIndex < targetIndex ? '-translate-x-full' : 'translate-x-full');
+                    
+                    navBtn.classList.add('text-zinc-500');
+                    navBtn.classList.remove('text-primary');
+                    indicator.classList.add('opacity-0');
+                }
+            });
+        };
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let colorClass = 'border-primary/50 text-primary';
+            let icon = 'info';
+            if (type === 'success') { colorClass = 'border-green-500/50 text-green-400'; icon = 'check-circle'; }
+            if (type === 'error') { colorClass = 'border-red-500/50 text-red-400'; icon = 'alert-circle'; }
+
+            toast.className = `glass-panel px-4 py-3 rounded-xl border-l-4 ${colorClass} flex items-center gap-3 text-sm font-medium animate-slide-up bg-zinc-900/90`;
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            window.lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         window.toggleQRModal = () => {
             const modal = document.getElementById('modal-qr');
             modal.classList.toggle('hidden');
@@ -741,7 +821,6 @@
             navigator.clipboard.writeText(myRawCode).then(() => {
                 showToast('Código copiado al portapapeles', 'success');
             }).catch(() => {
-                // Fallback execCommand
                 const textArea = document.createElement("textarea");
                 textArea.value = myRawCode;
                 document.body.appendChild(textArea);
