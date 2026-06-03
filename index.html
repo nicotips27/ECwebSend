@@ -336,6 +336,36 @@
         </div>
     </div>
 
+    <!-- CHAT FLOTANTE Y MODAL (NUEVO) -->
+    <button id="btn-floating-chat" onclick="window.toggleChat()" class="hidden fixed bottom-28 right-5 z-[50] w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] flex items-center justify-center transition-all active:scale-95">
+        <i data-lucide="message-circle" class="w-6 h-6"></i>
+        <span id="chat-badge" class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden border-2 border-dark shadow-md">0</span>
+    </button>
+
+    <div id="modal-chat" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[80] hidden flex flex-col transition-opacity">
+        <div class="glass-panel w-full max-w-md mx-auto h-full flex flex-col shadow-2xl relative">
+            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-zinc-900/50 pt-8">
+                <h3 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-5 h-5 text-primary"></i> Chat P2P Cifrado
+                </h3>
+                <button onclick="window.toggleChat()" class="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-800 rounded-full">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div id="chat-messages" class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-3 flex flex-col pb-6">
+                <div class="text-center text-[10px] text-zinc-500 my-2 bg-zinc-900/50 py-1.5 px-3 rounded-full self-center border border-white/5">Conexión directa: los mensajes no se guardan en servidores</div>
+            </div>
+
+            <div class="p-4 border-t border-white/10 bg-zinc-900/80 flex gap-2 pb-8">
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje..." class="flex-1 bg-zinc-800/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all placeholder:text-zinc-500" onkeypress="if(event.key === 'Enter') window.sendChatMessage()">
+                <button onclick="window.sendChatMessage()" class="w-12 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 shrink-0">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
     <script>
         // 1. REGISTRAR FUNCIONES DE INTERFAZ PRIMERO PARA QUE NUNCA FALLEN
@@ -529,6 +559,12 @@
                     const msg = JSON.parse(data);
                     if (msg.type === 'ping') return; // Si recibimos un latido, simplemente lo ignoramos (ya cumplió su función de mantener la red activa)
                     
+                    // NUEVO: Interceptar mensajes de chat
+                    if (msg.type === 'chat') {
+                        window.receiveChatMessage(msg.text);
+                        return;
+                    }
+
                     if (msg.type === 'header') {
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                         openTransferModal(msg.name, msg.size, 'receive');
@@ -550,6 +586,10 @@
             btn.classList.replace('bg-primary', 'bg-green-600');
             document.getElementById('connection-status').classList.remove('hidden');
             document.getElementById('connection-status').classList.add('flex');
+            
+            // NUEVO: Mostrar el botón de chat al conectar
+            document.getElementById('btn-floating-chat').classList.remove('hidden');
+            
             if (window.lucide) window.lucide.createIcons();
             updateSendButton();
         }
@@ -561,6 +601,13 @@
             btn.classList.replace('bg-green-600', 'bg-primary');
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
+            
+            // NUEVO: Ocultar y limpiar el chat al desconectar
+            document.getElementById('btn-floating-chat').classList.add('hidden');
+            document.getElementById('chat-messages').innerHTML = '<div class="text-center text-[10px] text-zinc-500 my-2 bg-zinc-900/50 py-1.5 px-3 rounded-full self-center border border-white/5">Conexión directa: los mensajes no se guardan en servidores</div>';
+            unreadChatMessages = 0;
+            if (window.updateChatBadge) window.updateChatBadge();
+
             if (window.lucide) window.lucide.createIcons();
             activeConnection = null;
             updateSendButton();
@@ -694,6 +741,69 @@
 
             const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
         }
+
+        // --- SISTEMA DE CHAT P2P (NUEVO) ---
+        let unreadChatMessages = 0;
+        let isChatOpen = false;
+
+        window.toggleChat = () => {
+            const modal = document.getElementById('modal-chat');
+            isChatOpen = !isChatOpen;
+            if (isChatOpen) {
+                modal.classList.remove('hidden');
+                unreadChatMessages = 0;
+                window.updateChatBadge();
+                setTimeout(() => document.getElementById('chat-input').focus(), 100);
+            } else {
+                modal.classList.add('hidden');
+            }
+        };
+
+        window.sendChatMessage = () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !activeConnection || !activeConnection.open) return;
+            
+            activeConnection.send(JSON.stringify({ type: 'chat', text: text }));
+            appendChatMessage(text, 'local');
+            input.value = '';
+        };
+
+        window.receiveChatMessage = (text) => {
+            appendChatMessage(text, 'remote');
+            if (!isChatOpen) {
+                unreadChatMessages++;
+                window.updateChatBadge();
+                window.showToast("Nuevo mensaje recibido", "info");
+            }
+        };
+
+        function appendChatMessage(text, origin) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            
+            if (origin === 'local') {
+                div.className = "self-end bg-primary text-white text-sm py-2.5 px-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md break-words";
+            } else {
+                div.className = "self-start bg-zinc-800 text-zinc-200 text-sm py-2.5 px-4 rounded-2xl rounded-tl-sm max-w-[85%] shadow-md border border-white/5 break-words";
+            }
+            
+            div.innerText = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight; // Auto-scroll hacia abajo
+        }
+
+        window.updateChatBadge = () => {
+            const badge = document.getElementById('chat-badge');
+            if (badge) {
+                if (unreadChatMessages > 0) {
+                    badge.innerText = unreadChatMessages;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        };
 
         // --- CONTADOR Y VALIDACIÓN DE CÓDIGO ---
         (function() {
