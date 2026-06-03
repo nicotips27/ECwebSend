@@ -125,9 +125,14 @@
                 </div>
             </div>
         </a>
-        <button onclick="window.toggleQRModal()" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
-            <i data-lucide="qr-code" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="window.location.reload()" title="Recargar página" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            </button>
+            <button onclick="window.toggleQRModal()" title="Mostrar código QR" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
+                <i data-lucide="qr-code" class="w-5 h-5"></i>
+            </button>
+        </div>
     </header>
 
     <!-- MAIN VIEWS -->
@@ -410,12 +415,12 @@
         function animateLoader(timestamp) {
             if(!startAnimTime) startAnimTime = timestamp; 
             const elapsed = timestamp - startAnimTime; 
-            const progress = Math.min((elapsed / 1800) * 100, 100);
+            const progress = Math.min((elapsed / 800) * 100, 100);
             if(progressBar) progressBar.style.width = progress + '%'; 
             if(percentText) percentText.textContent = Math.floor(progress) + '%';
             
             if(progress < 100) requestAnimationFrame(animateLoader);
-            else setTimeout(() => { if(splash) { splash.style.opacity = '0'; setTimeout(() => splash.classList.add('hidden'), 700); } }, 300);
+            else setTimeout(() => { if(splash) { splash.style.opacity = '0'; setTimeout(() => splash.classList.add('hidden'), 500); } }, 150);
         }
         requestAnimationFrame(animateLoader);
 
