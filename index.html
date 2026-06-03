@@ -493,8 +493,20 @@
                 });
 
                 peer.on('connection', (conn) => {
-                    setupConnection(conn);
-                    window.showToast(`Dispositivo vinculado`, 'success');
+                    // Garantizamos que el canal se abrió correctamente para el receptor
+                    const handleConnection = () => {
+                        if (activeConnection === conn) return; // Evitar disparos duplicados
+                        setupConnection(conn);
+                        window.showToast(`Dispositivo vinculado con éxito`, 'success');
+                        updateUIConnected(); // ¡ESTO ENCIENDE EL CHAT PARA EL RECEPTOR!
+                    };
+
+                    conn.on('open', handleConnection);
+                    
+                    // Fallback por si la conexión fue ultra rápida
+                    if (conn.open) {
+                        handleConnection();
+                    }
                 });
 
                 peer.on('error', (err) => {
