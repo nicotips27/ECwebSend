@@ -131,6 +131,9 @@
             </div>
         </a>
         <div class="flex items-center gap-2">
+            <button onclick="window.toggleHelpModal()" title="¿Cómo funciona?" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-primary rounded-xl transition-all border border-white/5 active:scale-95 shadow-[0_0_10px_rgba(14,165,233,0.2)]">
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
             <button onclick="window.location.reload()" title="Recargar página" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 rounded-xl transition-all border border-white/5 active:scale-95">
                 <i data-lucide="refresh-cw" class="w-5 h-5"></i>
             </button>
@@ -319,7 +322,37 @@
         </ul>
     </nav>
 
-    <!-- MODALES: QR GENERADOR, TRANSFERENCIA Y CHAT -->
+    <!-- MODALES: AYUDA, QR GENERADOR, TRANSFERENCIA Y CHAT -->
+    
+    <!-- MODAL DE AYUDA (NUEVO) -->
+    <div id="modal-help" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
+            <button onclick="window.toggleHelpModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <i data-lucide="help-circle" class="text-primary w-6 h-6"></i> ¿Cómo funciona?
+            </h3>
+            <p class="text-xs text-zinc-400 mb-6 text-center">Pasar archivos es súper fácil y rápido.</p>
+            
+            <div class="space-y-3 w-full text-[13px] text-zinc-200 leading-relaxed">
+                <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
+                    <span class="text-primary font-bold">1. El que recibe:</span> Solo tiene que abrir esta página y quedarse en la pestaña <b class="text-white">"RECIBIR"</b>. Ahí verá sus 6 números grandotes (Mi Código).
+                </div>
+                <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
+                    <span class="text-primary font-bold">2. El que envía:</span> Va a la pestaña <b class="text-white">"ENVIAR"</b> (abajo al medio) y escribe esos 6 números (o escanea el QR del otro celular).
+                </div>
+                <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
+                    <span class="text-primary font-bold">3. ¡Listo!</span> Ya están conectados en privado. Solo selecciona las fotos o documentos que quieras mandar y listo. ¡Así de simple!
+                </div>
+            </div>
+            
+            <button onclick="window.toggleHelpModal()" class="w-full mt-6 py-3.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95">
+                ¡Entendido!
+            </button>
+        </div>
+    </div>
+
     <div id="modal-qr" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[280px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleQRModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
@@ -452,6 +485,7 @@
             }, 3000);
         };
 
+        window.toggleHelpModal = () => document.getElementById('modal-help').classList.toggle('hidden');
         window.toggleQRModal = () => document.getElementById('modal-qr').classList.toggle('hidden');
         window.closeTransferModal = () => {
             document.getElementById('modal-transfer').classList.add('hidden');
