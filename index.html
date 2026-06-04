@@ -438,12 +438,15 @@
             sounds: true 
         };
 
-        // Generador de Sonidos Bip
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Generador de Sonidos Bip (A prueba de fallos y bloqueos de navegador)
+        let audioCtx = null;
         function playBeep(type) {
-            if (!appSettings.sounds) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
             try {
+                if (!appSettings.sounds) return;
+                // Inicializar solo cuando se necesita para evitar bloqueos del navegador
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
                 const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 if (type === 'connect') {
@@ -455,14 +458,18 @@
                     gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                     osc.start(); osc.stop(audioCtx.currentTime + 0.1);
                     setTimeout(() => {
-                        const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
-                        osc2.connect(gain2); gain2.connect(audioCtx.destination);
-                        osc2.type = 'square'; osc2.frequency.setValueAtTime(1600, audioCtx.currentTime);
-                        gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                        osc2.start(); osc2.stop(audioCtx.currentTime + 0.15);
+                        try {
+                            const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+                            osc2.connect(gain2); gain2.connect(audioCtx.destination);
+                            osc2.type = 'square'; osc2.frequency.setValueAtTime(1600, audioCtx.currentTime);
+                            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                            osc2.start(); osc2.stop(audioCtx.currentTime + 0.15);
+                        } catch(e){}
                     }, 150);
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.warn("Sonido silenciado por política del navegador.", e);
+            }
         }
 
         // Llenar UI de Ajustes
@@ -651,8 +658,9 @@
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                         openTransferModal(msg.name, msg.size, 'receive');
                     } else if (msg.type === 'eof') {
-                        finishReceivingFile();
+                        // Enviar confirmación PRIMERO, para evitar que un error local tranque al emisor
                         try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
+                        finishReceivingFile();
                     } else if (msg.type === 'eof-ack') {
                         finishSendingFile();
                     }
@@ -805,7 +813,8 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('btn-transfer-close').classList.remove('hidden');
-            selectedFiles.shift(); renderFileList();
+            if (selectedFiles.length > 0) selectedFiles.shift(); 
+            renderFileList();
         }
 
         function finishReceivingFile() {
