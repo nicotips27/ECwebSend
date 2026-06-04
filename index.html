@@ -212,7 +212,7 @@
                 </div>
                 <div id="connection-status" class="mt-3 text-xs font-medium text-zinc-500 hidden items-center gap-1.5 justify-center">
                     <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i>
-                    <span class="text-green-400">Conectado. Listo para enviar.</span>
+                    <span class="text-green-400" id="connection-status-text">Conectado. Listo para enviar.</span>
                 </div>
             </div>
 
@@ -243,30 +243,38 @@
         <section id="view-settings" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Configuración</h2>
             <div class="space-y-4">
-                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
-                    <div>
-                        <p class="font-semibold text-sm text-zinc-200">Protocolo WebRTC Global</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">Servidor Público PeerJS</p>
-                    </div>
-                    <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <i data-lucide="globe" class="w-4 h-4 text-green-400"></i>
-                    </div>
+                
+                <!-- Ajuste: Perfil -->
+                <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Nombre en la Red</label>
+                    <input type="text" id="setting-username" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all font-medium" placeholder="Ej: Celular de Nico">
                 </div>
 
-                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+                <!-- Ajuste: Modo de Red -->
+                <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
+                    <label class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Modo de Conexión</label>
+                    <select id="setting-network" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
+                        <option value="global">🌐 Modo Global (Internet y Wi-Fi)</option>
+                        <option value="local">🏠 Modo Estricto Local (Solo Wi-Fi)</option>
+                    </select>
+                    <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">El modo Local fuerza la transferencia por tu router (LAN) por privacidad, pero requiere que ambos estén en la misma red Wi-Fi.</p>
+                </div>
+
+                <!-- Ajuste: Sonidos -->
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-sound-btn">
                     <div>
-                        <p class="font-semibold text-sm text-zinc-200">Cifrado E2E</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">Activo por defecto</p>
+                        <p class="font-semibold text-sm text-zinc-200">Alertas de Sonido</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Al conectar o recibir archivos</p>
                     </div>
-                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <i data-lucide="lock" class="w-4 h-4 text-primary"></i>
+                    <div id="toggle-sound-ui" class="w-11 h-6 bg-zinc-700 rounded-full relative transition-colors duration-300">
+                        <div id="toggle-sound-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0"></div>
                     </div>
                 </div>
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v4.3</p>
-                    <p class="text-[10px] text-center max-w-[200px]">Incluye sistema Anti-Desconexión (Keep-Alive) para transferencias largas e interrupciones.</p>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v5.0</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Cifrado E2E Activo. Personalización, Chat integrado y rendimiento mejorado.</p>
                 </div>
             </div>
         </section>
@@ -299,7 +307,7 @@
         </ul>
     </nav>
 
-    <!-- MODALES -->
+    <!-- MODALES: QR, TRANSFERENCIA Y CHAT -->
     <div id="modal-qr" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[280px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleQRModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
@@ -336,7 +344,6 @@
         </div>
     </div>
 
-    <!-- CHAT FLOTANTE Y MODAL (NUEVO) -->
     <button id="btn-floating-chat" onclick="window.toggleChat()" class="hidden fixed bottom-28 right-5 z-[50] w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] flex items-center justify-center transition-all active:scale-95">
         <i data-lucide="message-circle" class="w-6 h-6"></i>
         <span id="chat-badge" class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden border-2 border-dark shadow-md">0</span>
@@ -368,7 +375,7 @@
 
     <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
     <script>
-        // 1. REGISTRAR FUNCIONES DE INTERFAZ PRIMERO PARA QUE NUNCA FALLEN
+        // --- UI BÁSICA Y FUNCIONES EXPORTADAS ---
         window.switchView = function(targetView) {
             ['receive', 'send', 'settings'].forEach(view => {
                 const section = document.getElementById(`view-${view}`);
@@ -424,7 +431,76 @@
             }, 500);
         };
 
-        // 2. INICIALIZAR VARIABLES Y UI
+        // --- SISTEMA DE CONFIGURACIONES ---
+        let appSettings = JSON.parse(localStorage.getItem('ecweb_settings')) || { 
+            username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
+            network: 'global', 
+            sounds: true 
+        };
+
+        // Generador de Sonidos Bip
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep(type) {
+            if (!appSettings.sounds) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            try {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                if (type === 'connect') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'receive') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                    setTimeout(() => {
+                        const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+                        osc2.connect(gain2); gain2.connect(audioCtx.destination);
+                        osc2.type = 'square'; osc2.frequency.setValueAtTime(1600, audioCtx.currentTime);
+                        gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                        osc2.start(); osc2.stop(audioCtx.currentTime + 0.15);
+                    }, 150);
+                }
+            } catch(e) {}
+        }
+
+        // Llenar UI de Ajustes
+        document.getElementById('setting-username').value = appSettings.username;
+        document.getElementById('setting-network').value = appSettings.network;
+        function updateSoundUI() {
+            const ui = document.getElementById('toggle-sound-ui');
+            const circle = document.getElementById('toggle-sound-circle');
+            if (appSettings.sounds) {
+                ui.classList.replace('bg-zinc-700', 'bg-primary');
+                circle.classList.add('translate-x-5');
+            } else {
+                ui.classList.replace('bg-primary', 'bg-zinc-700');
+                circle.classList.remove('translate-x-5');
+            }
+        }
+        updateSoundUI();
+
+        // Guardar cambios en Ajustes
+        document.getElementById('setting-username').addEventListener('change', (e) => {
+            appSettings.username = e.target.value.trim() || 'Dispositivo';
+            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            window.showToast('Nombre actualizado', 'success');
+        });
+        document.getElementById('setting-network').addEventListener('change', (e) => {
+            appSettings.network = e.target.value;
+            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            window.showToast('Red cambiada. Reiniciando...', 'info');
+            setTimeout(() => window.location.reload(), 1000);
+        });
+        document.getElementById('toggle-sound-btn').addEventListener('click', () => {
+            appSettings.sounds = !appSettings.sounds;
+            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            updateSoundUI();
+            if (appSettings.sounds) playBeep('connect');
+        });
+
+        // --- VARIABLES GLOBALES DE WEBRTC ---
         if (window.lucide) window.lucide.createIcons();
         const PREFIX = "ecwebpro-";
         let myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -433,11 +509,11 @@
         let peer = null;
         let activeConnection = null;
         let selectedFiles = [];
-        let keepAliveInterval = null; // Variable para latidos anti-desconexión
+        let keepAliveInterval = null;
 
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
-        // Loader Animación
+        // --- CARGA RÁPIDA ESTALINGRADO ---
         const splash = document.getElementById('splash');
         const progressBar = document.getElementById('loading-progress-bar');
         const percentText = document.getElementById('loading-percent');
@@ -454,7 +530,7 @@
         }
         requestAnimationFrame(animateLoader);
 
-        // Generar QR
+        // QR
         if (window.QRious) {
             new window.QRious({
                 element: document.getElementById('qr-canvas'),
@@ -472,50 +548,41 @@
             });
         };
 
-        // 3. INICIAR PEERJS (Cuidado con los bloqueos de Canvas)
+        // --- INICIAR PEERJS CON AJUSTES ---
         function initPeer() {
             try {
-                if (typeof Peer === 'undefined') {
-                    console.warn("PeerJS no cargó."); return;
-                }
-                peer = new Peer(myPeerId, {
-                    debug: 2,
-                    config: {'iceServers': [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]}
-                });
+                if (typeof Peer === 'undefined') return console.warn("PeerJS no cargó.");
+                
+                const iceServers = appSettings.network === 'global' 
+                    ? [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] 
+                    : [];
+
+                peer = new Peer(myPeerId, { debug: 2, config: { 'iceServers': iceServers } });
 
                 peer.on('open', (id) => {
                     document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
-                    document.getElementById('status-text').innerText = "En Línea (Global)";
+                    document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
                     checkURLParams();
                 });
 
                 peer.on('connection', (conn) => {
-                    // Garantizamos que el canal se abrió correctamente para el receptor
                     const handleConnection = () => {
-                        if (activeConnection === conn) return; // Evitar disparos duplicados
+                        if (activeConnection === conn) return;
                         setupConnection(conn);
-                        window.showToast(`Dispositivo vinculado con éxito`, 'success');
-                        updateUIConnected(); // ¡ESTO ENCIENDE EL CHAT PARA EL RECEPTOR!
+                        window.showToast(`Dispositivo vinculado`, 'success');
+                        updateUIConnected();
+                        try { conn.send(JSON.stringify({ type: 'handshake', username: appSettings.username })); } catch(e){}
                     };
-
                     conn.on('open', handleConnection);
-                    
-                    // Fallback por si la conexión fue ultra rápida
-                    if (conn.open) {
-                        handleConnection();
-                    }
+                    if (conn.open) handleConnection();
                 });
 
                 peer.on('error', (err) => {
-                    console.error("Peer Error:", err);
                     if (err.type === 'peer-unavailable') window.showToast('Dispositivo no encontrado.', 'error');
                     resetConnectionUI();
                 });
             } catch (e) {
-                console.warn("Entorno bloqueó PeerJS:", e);
+                console.warn("Error PeerJS:", e);
             }
         }
         setTimeout(initPeer, 800);
@@ -546,19 +613,18 @@
                 setupConnection(conn);
                 window.showToast('¡Enlazado exitosamente!', 'success');
                 updateUIConnected();
+                try { conn.send(JSON.stringify({ type: 'handshake', username: appSettings.username })); } catch(e){}
             });
         };
 
-        // 4. LÓGICA DE ARCHIVOS & ANTI-DESCONEXIÓN
+        // --- SISTEMA WEBRTC CORE (CHAT + ARCHIVOS + KEEP ALIVE) ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
             activeConnection = conn;
-            
-            // Pausar el cronómetro para que no se desconecte mientras están enlazados
+            playBeep('connect');
             stopCodeTimer();
 
-            // Iniciar Latidos (Ping) cada 3 segundos para que el navegador no mate la conexión inactiva
             clearInterval(keepAliveInterval);
             keepAliveInterval = setInterval(() => {
                 if (activeConnection && activeConnection.open) {
@@ -569,9 +635,13 @@
             conn.on('data', (data) => {
                 if (typeof data === 'string') {
                     const msg = JSON.parse(data);
-                    if (msg.type === 'ping') return; // Si recibimos un latido, simplemente lo ignoramos (ya cumplió su función de mantener la red activa)
+                    if (msg.type === 'ping') return;
                     
-                    // NUEVO: Interceptar mensajes de chat
+                    if (msg.type === 'handshake') {
+                        document.getElementById('connection-status-text').innerText = `Conectado con: ${msg.username}`;
+                        return;
+                    }
+
                     if (msg.type === 'chat') {
                         window.receiveChatMessage(msg.text);
                         return;
@@ -580,7 +650,12 @@
                     if (msg.type === 'header') {
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                         openTransferModal(msg.name, msg.size, 'receive');
-                    } else if (msg.type === 'eof') finishReceivingFile();
+                    } else if (msg.type === 'eof') {
+                        finishReceivingFile();
+                        try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
+                    } else if (msg.type === 'eof-ack') {
+                        finishSendingFile();
+                    }
                 } else {
                     incomingData.push(data); incomingBytes += data.byteLength;
                     if (incomingFileInfo) updateTransferProgress(incomingBytes, incomingFileInfo.size);
@@ -599,22 +674,20 @@
             document.getElementById('connection-status').classList.remove('hidden');
             document.getElementById('connection-status').classList.add('flex');
             
-            // NUEVO: Mostrar el botón de chat al conectar
             document.getElementById('btn-floating-chat').classList.remove('hidden');
-            
             if (window.lucide) window.lucide.createIcons();
             updateSendButton();
         }
 
         function resetConnectionUI() {
-            clearInterval(keepAliveInterval); // Detener latidos
+            clearInterval(keepAliveInterval);
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
             btn.classList.replace('bg-green-600', 'bg-primary');
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
+            document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
             
-            // NUEVO: Ocultar y limpiar el chat al desconectar
             document.getElementById('btn-floating-chat').classList.add('hidden');
             document.getElementById('chat-messages').innerHTML = '<div class="text-center text-[10px] text-zinc-500 my-2 bg-zinc-900/50 py-1.5 px-3 rounded-full self-center border border-white/5">Conexión directa: los mensajes no se guardan en servidores</div>';
             unreadChatMessages = 0;
@@ -623,10 +696,10 @@
             if (window.lucide) window.lucide.createIcons();
             activeConnection = null;
             updateSendButton();
-            startCodeTimer(); // Reactivar el cronómetro y rotación de código si el usuario se desconecta
+            startCodeTimer();
         }
 
-        // Dropzone & Input
+        // --- SISTEMA DE ARCHIVOS (DROPZONE, ENVIAR, BACKPRESSURE) ---
         const dropZone = document.getElementById('drop-zone');
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-zinc-800/80'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-zinc-800/80'));
@@ -685,7 +758,12 @@
             activeConnection.send(JSON.stringify({ type: 'header', name: file.name, size: file.size, mime: file.type }));
 
             const chunkSize = 64 * 1024; let offset = 0;
+            const MAX_BUFFER = 16 * 1024 * 1024;
+            
             const readNextChunk = () => {
+                if (activeConnection.dataChannel && activeConnection.dataChannel.bufferedAmount > MAX_BUFFER) {
+                    setTimeout(readNextChunk, 50); return;
+                }
                 const slice = file.slice(offset, offset + chunkSize);
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -693,14 +771,18 @@
                     offset += e.target.result.byteLength;
                     updateTransferProgress(offset, file.size);
                     if (offset < file.size) setTimeout(readNextChunk, 5); 
-                    else { activeConnection.send(JSON.stringify({ type: 'eof' })); finishSendingFile(); }
+                    else { 
+                        activeConnection.send(JSON.stringify({ type: 'eof' }));
+                        document.getElementById('transfer-title').innerText = 'Guardando...';
+                        document.getElementById('transfer-size-info').innerText = 'Esperando confirmación...';
+                    }
                 };
                 reader.readAsArrayBuffer(slice);
             };
             setTimeout(readNextChunk, 100);
         };
 
-        // 5. MODAL PROGRESO
+        // --- MODAL Y RESULTADO DE TRANSFERENCIA ---
         function openTransferModal(filename, size, mode) {
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
@@ -733,6 +815,8 @@
             document.getElementById('transfer-progress-bar').style.width = '100%';
             document.getElementById('btn-transfer-close').classList.remove('hidden');
 
+            playBeep('receive');
+
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
             const url = URL.createObjectURL(blob);
             
@@ -754,7 +838,7 @@
             const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
         }
 
-        // --- SISTEMA DE CHAT P2P (NUEVO) ---
+        // --- SISTEMA DE CHAT P2P ---
         let unreadChatMessages = 0;
         let isChatOpen = false;
 
@@ -775,13 +859,13 @@
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text || !activeConnection || !activeConnection.open) return;
-            
             activeConnection.send(JSON.stringify({ type: 'chat', text: text }));
             appendChatMessage(text, 'local');
             input.value = '';
         };
 
         window.receiveChatMessage = (text) => {
+            playBeep('connect'); // Usar sonido corto de alerta para chat
             appendChatMessage(text, 'remote');
             if (!isChatOpen) {
                 unreadChatMessages++;
@@ -793,16 +877,11 @@
         function appendChatMessage(text, origin) {
             const container = document.getElementById('chat-messages');
             const div = document.createElement('div');
-            
-            if (origin === 'local') {
-                div.className = "self-end bg-primary text-white text-sm py-2.5 px-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md break-words";
-            } else {
-                div.className = "self-start bg-zinc-800 text-zinc-200 text-sm py-2.5 px-4 rounded-2xl rounded-tl-sm max-w-[85%] shadow-md border border-white/5 break-words";
-            }
-            
+            if (origin === 'local') div.className = "self-end bg-primary text-white text-sm py-2.5 px-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md break-words";
+            else div.className = "self-start bg-zinc-800 text-zinc-200 text-sm py-2.5 px-4 rounded-2xl rounded-tl-sm max-w-[85%] shadow-md border border-white/5 break-words";
             div.innerText = text;
             container.appendChild(div);
-            container.scrollTop = container.scrollHeight; // Auto-scroll hacia abajo
+            container.scrollTop = container.scrollHeight;
         }
 
         window.updateChatBadge = () => {
@@ -817,17 +896,15 @@
             }
         };
 
-        // --- CONTADOR Y VALIDACIÓN DE CÓDIGO ---
+        // --- CONTADOR DE INPUT ---
         (function() {
             const inputEl = document.getElementById('target-code');
             const counterEl = document.getElementById('code-counter');
-            
             if (inputEl && counterEl) {
                 inputEl.addEventListener('input', (e) => {
-                    e.target.value = e.target.value.replace(/[^0-9]/g, ''); // Forzar solo números
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
                     const length = e.target.value.length;
                     counterEl.innerText = `${length}/6`;
-                    
                     if (length === 6) {
                         counterEl.classList.replace('text-zinc-400', 'text-primary');
                         counterEl.classList.replace('bg-zinc-800', 'bg-primary/20');
@@ -839,21 +916,18 @@
             }
         })();
 
-        // --- ROTACIÓN DE CÓDIGO (180 Segundos y Pausa de Caducidad) ---
-        const CODE_VALID_TIME = 180; // 3 minutos ahora para más comodidad
+        // --- ROTACIÓN DE CÓDIGO TEMPORAL (180 Segundos) ---
+        const CODE_VALID_TIME = 180;
         let codeTimeLeft = CODE_VALID_TIME;
         let codeTimerInterval = null;
 
         function startCodeTimer() {
             clearInterval(codeTimerInterval);
             codeTimeLeft = CODE_VALID_TIME;
-            
             const circle = document.getElementById('timer-circle');
             const text = document.getElementById('code-timer-text');
-            
             if (!circle || !text) return;
 
-            // Reiniciar UI de colores (En caso de venir de un OK verde)
             circle.classList.remove('text-green-500', 'text-red-500');
             circle.classList.add('text-primary');
             text.classList.remove('text-green-500', 'text-red-500');
@@ -863,20 +937,14 @@
             text.innerText = codeTimeLeft + 's';
             
             codeTimerInterval = setInterval(() => {
-                codeTimeLeft--;
-                text.innerText = codeTimeLeft + 's';
-                
-                const offset = 62.83 - (62.83 * (codeTimeLeft / CODE_VALID_TIME));
-                circle.style.strokeDashoffset = offset;
+                codeTimeLeft--; text.innerText = codeTimeLeft + 's';
+                circle.style.strokeDashoffset = 62.83 - (62.83 * (codeTimeLeft / CODE_VALID_TIME));
                 
                 if (codeTimeLeft === 10) {
                     circle.classList.replace('text-primary', 'text-red-500');
                     text.classList.replace('text-primary', 'text-red-500');
                 }
-                
-                if (codeTimeLeft <= 0) {
-                    refreshMyCode();
-                }
+                if (codeTimeLeft <= 0) refreshMyCode();
             }, 1000);
         }
 
@@ -884,14 +952,11 @@
             clearInterval(codeTimerInterval);
             const circle = document.getElementById('timer-circle');
             const text = document.getElementById('code-timer-text');
-            
             if (circle && text) {
-                // Cambiar el contador a verde fijo indicando que la conexión está asegurada
                 circle.classList.remove('text-primary', 'text-red-500');
                 circle.classList.add('text-green-500');
                 text.classList.remove('text-primary', 'text-red-500');
                 text.classList.add('text-green-500');
-                
                 circle.style.strokeDashoffset = '0';
                 text.innerText = 'OK';
             }
@@ -900,8 +965,8 @@
         function refreshMyCode() {
             myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
             myPeerId = PREFIX + myRawCode;
-            
             document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
+            
             if (window.QRious) {
                 new window.QRious({
                     element: document.getElementById('qr-canvas'),
@@ -909,19 +974,13 @@
                     size: 200, background: '#ffffff', foreground: '#09090b', level: 'M'
                 });
             }
-
             if (peer) {
-                if (!activeConnection || !activeConnection.open) {
-                    peer.destroy();
-                } else {
-                    peer.disconnect();
-                }
+                if (!activeConnection || !activeConnection.open) peer.destroy();
+                else peer.disconnect();
             }
-            
             initPeer();
             startCodeTimer();
         }
-
         startCodeTimer();
     </script>
 </body>
