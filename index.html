@@ -36,6 +36,7 @@
     <!-- Icons & Tools -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -95,6 +96,10 @@
             box-shadow: 0 0 10px #0ea5e9; transition: width 0.1s linear;
         }
         #loading-percent { color: #0ea5e9; font-size: 12px; font-weight: 600; font-family: monospace; }
+        
+        /* Ajustes específicos del lector QR */
+        #qr-reader video { border-radius: 1rem; object-fit: cover; }
+        #qr-reader-shade { display: none !important; }
     </style>
 </head>
 <body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
@@ -173,7 +178,7 @@
                             <i data-lucide="copy" class="w-5 h-5"></i>
                         </button>
                     </div>
-                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código. Se renueva automáticamente para mayor seguridad.</p>
+                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el QR superior. Se renueva automáticamente para mayor seguridad.</p>
                 </div>
             </div>
 
@@ -206,6 +211,13 @@
                 </label>
                 <div class="flex gap-2">
                     <input type="text" inputmode="numeric" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
+                    
+                    <!-- Botón para escanear QR -->
+                    <button onclick="window.startQRScanner()" id="btn-scan" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 rounded-xl transition-all shadow-[0_0_10px_rgba(255,255,255,0.05)] active:scale-95 flex items-center justify-center shrink-0 border border-white/5" title="Escanear QR con la cámara">
+                        <i data-lucide="scan" class="w-5 h-5"></i>
+                    </button>
+
+                    <!-- Botón para conectar -->
                     <button onclick="window.connectToPeer()" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0">
                         <i data-lucide="link" class="w-5 h-5"></i>
                     </button>
@@ -273,8 +285,8 @@
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v5.0</p>
-                    <p class="text-[10px] text-center max-w-[200px]">Cifrado E2E Activo. Personalización, Chat integrado y rendimiento mejorado.</p>
+                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v6.0</p>
+                    <p class="text-[10px] text-center max-w-[200px]">Cifrado E2E Activo. Lector de QR nativo y chat integrado listos.</p>
                 </div>
             </div>
         </section>
@@ -307,20 +319,37 @@
         </ul>
     </nav>
 
-    <!-- MODALES: QR, TRANSFERENCIA Y CHAT -->
+    <!-- MODALES: QR GENERADOR, TRANSFERENCIA Y CHAT -->
     <div id="modal-qr" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[280px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleQRModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
-            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-6">Escanear para Enviar</h3>
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-6">Mi Código QR</h3>
             <div class="bg-white p-3 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 <canvas id="qr-canvas" class="w-48 h-48"></canvas>
             </div>
-            <p class="text-xs text-zinc-400 mt-6 text-center">Abre la cámara de tu celular para vincularte instantáneamente.</p>
+            <p class="text-xs text-zinc-400 mt-6 text-center">Permite que tu amigo escanee este código desde su pestaña "Enviar".</p>
         </div>
     </div>
 
+    <!-- MODAL: LECTOR DE CÓDIGO QR -->
+    <div id="modal-scanner" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[80] hidden flex flex-col items-center justify-center p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
+            <button onclick="window.stopQRScanner()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-[90]">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-sm font-bold text-white uppercase tracking-widest mb-4 flex items-center gap-2">
+                <i data-lucide="scan-line" class="w-5 h-5 text-primary"></i> Escanear QR
+            </h3>
+            <div id="qr-reader" class="w-full bg-black rounded-2xl overflow-hidden border border-zinc-700 min-h-[200px] flex items-center justify-center">
+                <i data-lucide="loader-2" class="w-8 h-8 text-primary animate-spin"></i>
+            </div>
+            <p class="text-xs text-zinc-400 mt-4 text-center">Apunta tu cámara al código QR de la persona que va a recibir los archivos.</p>
+        </div>
+    </div>
+
+    <!-- MODAL DE TRANSFERENCIA -->
     <div id="modal-transfer" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[70] hidden flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-sm flex flex-col items-center">
             <div id="transfer-icon-container" class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce">
@@ -344,6 +373,7 @@
         </div>
     </div>
 
+    <!-- BOTON FLOTANTE CHAT Y MODAL -->
     <button id="btn-floating-chat" onclick="window.toggleChat()" class="hidden fixed bottom-28 right-5 z-[50] w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] flex items-center justify-center transition-all active:scale-95">
         <i data-lucide="message-circle" class="w-6 h-6"></i>
         <span id="chat-badge" class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden border-2 border-dark shadow-md">0</span>
@@ -431,6 +461,58 @@
             }, 500);
         };
 
+        // --- LECTOR DE CÓDIGOS QR MEDIANTE LA CÁMARA ---
+        let html5QrCode = null;
+
+        window.startQRScanner = () => {
+            document.getElementById('modal-scanner').classList.remove('hidden');
+            
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                // Éxito al escanear
+                let codeToConnect = "";
+                try {
+                    if (decodedText.includes('?connect=')) {
+                        const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+                        codeToConnect = urlParams.get('connect');
+                    } else if (decodedText.length === 6 && !isNaN(decodedText)) {
+                        codeToConnect = decodedText;
+                    }
+                } catch(e) {}
+
+                if (codeToConnect && codeToConnect.length === 6) {
+                    window.stopQRScanner();
+                    window.showToast("QR Escaneado", "success");
+                    document.getElementById('target-code').value = codeToConnect;
+                    
+                    const counterEl = document.getElementById('code-counter');
+                    if(counterEl) {
+                        counterEl.innerText = '6/6';
+                        counterEl.classList.replace('text-zinc-400', 'text-primary');
+                        counterEl.classList.replace('bg-zinc-800', 'bg-primary/20');
+                    }
+                    setTimeout(() => window.connectToPeer(), 500);
+                }
+            }, (errorMessage) => {
+                // Ignore silent errors during scanning
+            }).catch((err) => {
+                window.showToast("No se pudo acceder a la cámara", "error");
+                window.stopQRScanner();
+            });
+        };
+
+        window.stopQRScanner = () => {
+            document.getElementById('modal-scanner').classList.add('hidden');
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error(err));
+            }
+        };
+
         // --- SISTEMA DE CONFIGURACIONES ---
         let appSettings = JSON.parse(localStorage.getItem('ecweb_settings')) || { 
             username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
@@ -438,12 +520,11 @@
             sounds: true 
         };
 
-        // Generador de Sonidos Bip (A prueba de fallos y bloqueos de navegador)
+        // Generador de Sonidos Bip
         let audioCtx = null;
         function playBeep(type) {
             try {
                 if (!appSettings.sounds) return;
-                // Inicializar solo cuando se necesita para evitar bloqueos del navegador
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 
@@ -624,7 +705,7 @@
             });
         };
 
-        // --- SISTEMA WEBRTC CORE (CHAT + ARCHIVOS + KEEP ALIVE) ---
+        // --- SISTEMA WEBRTC CORE ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
@@ -658,7 +739,6 @@
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                         openTransferModal(msg.name, msg.size, 'receive');
                     } else if (msg.type === 'eof') {
-                        // Enviar confirmación PRIMERO, para evitar que un error local tranque al emisor
                         try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
                         finishReceivingFile();
                     } else if (msg.type === 'eof-ack') {
@@ -707,7 +787,7 @@
             startCodeTimer();
         }
 
-        // --- SISTEMA DE ARCHIVOS (DROPZONE, ENVIAR, BACKPRESSURE) ---
+        // --- SISTEMA DE ARCHIVOS ---
         const dropZone = document.getElementById('drop-zone');
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-zinc-800/80'); });
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-zinc-800/80'));
@@ -790,7 +870,7 @@
             setTimeout(readNextChunk, 100);
         };
 
-        // --- MODAL Y RESULTADO DE TRANSFERENCIA ---
+        // --- MODAL Y RESULTADO ---
         function openTransferModal(filename, size, mode) {
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
@@ -874,7 +954,7 @@
         };
 
         window.receiveChatMessage = (text) => {
-            playBeep('connect'); // Usar sonido corto de alerta para chat
+            playBeep('connect'); 
             appendChatMessage(text, 'remote');
             if (!isChatOpen) {
                 unreadChatMessages++;
@@ -925,7 +1005,7 @@
             }
         })();
 
-        // --- ROTACIÓN DE CÓDIGO TEMPORAL (180 Segundos) ---
+        // --- ROTACIÓN DE CÓDIGO (180 Segundos) ---
         const CODE_VALID_TIME = 180;
         let codeTimeLeft = CODE_VALID_TIME;
         let codeTimerInterval = null;
