@@ -100,9 +100,29 @@
         /* Ajustes específicos del lector QR */
         #qr-reader video { border-radius: 1rem; object-fit: cover; }
         #qr-reader-shade { display: none !important; }
+
+        /* =========================================
+           FONDO DINAMICO ANIMADO (LUCES NEON)
+           ========================================= */
+        .animate-blob { animation: blob 15s infinite alternate ease-in-out; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(50px, -50px) scale(1.1); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
     </style>
 </head>
 <body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
+
+    <!-- FONDO DINÁMICO (AURORA/NEON) -->
+    <div id="dynamic-bg" class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none transition-opacity duration-700 opacity-100">
+        <div class="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] max-w-[500px] max-h-[500px] bg-primary/20 rounded-full mix-blend-screen filter blur-[80px] animate-blob"></div>
+        <div class="absolute top-[30%] right-[-10%] w-[70vw] h-[70vw] max-w-[600px] max-h-[600px] bg-secondary/15 rounded-full mix-blend-screen filter blur-[100px] animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[10%] w-[80vw] h-[80vw] max-w-[700px] max-h-[700px] bg-primary/10 rounded-full mix-blend-screen filter blur-[120px] animate-blob animation-delay-4000"></div>
+    </div>
 
     <!-- SPLASH SCREEN ESTALINGRADO -->
     <div id="splash" class="fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center transition-opacity duration-700">
@@ -286,9 +306,20 @@
                     </div>
                 </div>
 
+                <!-- Ajuste: Fondo Dinámico -->
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-bg-btn">
+                    <div>
+                        <p class="font-semibold text-sm text-zinc-200">Fondo Dinámico</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Animación de luces de fondo</p>
+                    </div>
+                    <div id="toggle-bg-ui" class="w-11 h-6 bg-primary rounded-full relative transition-colors duration-300">
+                        <div id="toggle-bg-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-5"></div>
+                    </div>
+                </div>
+
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECSend <span class="text-yellow-400 font-bold">PRO</span> v6.0</p>
+                    <p class="text-xs font-semibold tracking-wider">ECSend <span class="text-yellow-400 font-bold">PRO</span> v6.5</p>
                     <p class="text-[10px] text-center max-w-[200px]">Cifrado E2E Activo. Lector de QR nativo y chat integrado listos.</p>
                 </div>
             </div>
@@ -551,8 +582,11 @@
         let appSettings = JSON.parse(localStorage.getItem('ecsend_settings')) || { 
             username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
             network: 'global', 
-            sounds: true 
+            sounds: true,
+            dynamicBg: true
         };
+        // Compatibilidad con usuarios que ya tenían la app guardada sin este ajuste
+        if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
 
         // Generador de Sonidos Bip
         let audioCtx = null;
@@ -590,18 +624,38 @@
         // Llenar UI de Ajustes
         document.getElementById('setting-username').value = appSettings.username;
         document.getElementById('setting-network').value = appSettings.network;
-        function updateSoundUI() {
-            const ui = document.getElementById('toggle-sound-ui');
-            const circle = document.getElementById('toggle-sound-circle');
-            if (appSettings.sounds) {
-                ui.classList.replace('bg-zinc-700', 'bg-primary');
-                circle.classList.add('translate-x-5');
-            } else {
-                ui.classList.replace('bg-primary', 'bg-zinc-700');
-                circle.classList.remove('translate-x-5');
+        
+        function updateUIStates() {
+            // Actualizar switch de Sonido
+            const soundUi = document.getElementById('toggle-sound-ui');
+            const soundCircle = document.getElementById('toggle-sound-circle');
+            if (soundUi && soundCircle) {
+                if (appSettings.sounds) {
+                    soundUi.classList.replace('bg-zinc-700', 'bg-primary');
+                    soundCircle.classList.add('translate-x-5');
+                } else {
+                    soundUi.classList.replace('bg-primary', 'bg-zinc-700');
+                    soundCircle.classList.remove('translate-x-5');
+                }
+            }
+            
+            // Actualizar switch y visibilidad del Fondo Dinámico
+            const bgUi = document.getElementById('toggle-bg-ui');
+            const bgCircle = document.getElementById('toggle-bg-circle');
+            const bgContainer = document.getElementById('dynamic-bg');
+            if (bgUi && bgCircle) {
+                if (appSettings.dynamicBg) {
+                    if (bgContainer) bgContainer.style.opacity = '1';
+                    bgUi.classList.replace('bg-zinc-700', 'bg-primary');
+                    bgCircle.classList.add('translate-x-5');
+                } else {
+                    if (bgContainer) bgContainer.style.opacity = '0';
+                    bgUi.classList.replace('bg-primary', 'bg-zinc-700');
+                    bgCircle.classList.remove('translate-x-5');
+                }
             }
         }
-        updateSoundUI();
+        updateUIStates();
 
         // Guardar cambios en Ajustes
         document.getElementById('setting-username').addEventListener('change', (e) => {
@@ -618,9 +672,18 @@
         document.getElementById('toggle-sound-btn').addEventListener('click', () => {
             appSettings.sounds = !appSettings.sounds;
             localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
-            updateSoundUI();
+            updateUIStates();
             if (appSettings.sounds) playBeep('connect');
         });
+        
+        const toggleBgBtn = document.getElementById('toggle-bg-btn');
+        if (toggleBgBtn) {
+            toggleBgBtn.addEventListener('click', () => {
+                appSettings.dynamicBg = !appSettings.dynamicBg;
+                localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
+                updateUIStates();
+            });
+        }
 
         // --- VARIABLES GLOBALES DE WEBRTC ---
         if (window.lucide) window.lucide.createIcons();
