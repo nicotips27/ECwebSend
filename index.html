@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#09090b">
-    <title>ECwebSend Pro - P2P Transfer (Local & Web)</title>
+    <title>ECSend Pro - P2P Transfer (Local & Web)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -123,7 +123,7 @@
                 <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-full h-full object-cover opacity-80 mix-blend-screen" alt="Logo mini">
             </div>
             <div>
-                <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECwebSend <span class="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-md ml-1">PRO</span></h1>
+                <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECSend <span class="text-[10px] font-bold text-yellow-400 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-md ml-1 tracking-widest shadow-[0_0_10px_rgba(250,204,21,0.2)]">PRO</span></h1>
                 <div class="flex items-center gap-1.5 mt-1">
                     <span id="status-dot" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
                     <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Iniciando Servidor...</span>
@@ -288,7 +288,7 @@
 
                 <div class="mt-8 flex flex-col items-center justify-center text-zinc-600 gap-2">
                     <img src="https://64.media.tumblr.com/37c52c25279f877bd0bc2d538626c938/2f8407cc51b2210e-be/s540x810/c379bb3cd18325d6b075e62fd26ffe91f5093ee3.jpg" class="w-10 h-10 rounded-full opacity-50 grayscale mb-2 object-cover">
-                    <p class="text-xs font-semibold tracking-wider">ECwebSend PRO v6.0</p>
+                    <p class="text-xs font-semibold tracking-wider">ECSend <span class="text-yellow-400 font-bold">PRO</span> v6.0</p>
                     <p class="text-[10px] text-center max-w-[200px]">Cifrado E2E Activo. Lector de QR nativo y chat integrado listos.</p>
                 </div>
             </div>
@@ -548,7 +548,7 @@
         };
 
         // --- SISTEMA DE CONFIGURACIONES ---
-        let appSettings = JSON.parse(localStorage.getItem('ecweb_settings')) || { 
+        let appSettings = JSON.parse(localStorage.getItem('ecsend_settings')) || { 
             username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
             network: 'global', 
             sounds: true 
@@ -606,25 +606,25 @@
         // Guardar cambios en Ajustes
         document.getElementById('setting-username').addEventListener('change', (e) => {
             appSettings.username = e.target.value.trim() || 'Dispositivo';
-            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
             window.showToast('Nombre actualizado', 'success');
         });
         document.getElementById('setting-network').addEventListener('change', (e) => {
             appSettings.network = e.target.value;
-            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
             window.showToast('Red cambiada. Reiniciando...', 'info');
             setTimeout(() => window.location.reload(), 1000);
         });
         document.getElementById('toggle-sound-btn').addEventListener('click', () => {
             appSettings.sounds = !appSettings.sounds;
-            localStorage.setItem('ecweb_settings', JSON.stringify(appSettings));
+            localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
             updateSoundUI();
             if (appSettings.sounds) playBeep('connect');
         });
 
         // --- VARIABLES GLOBALES DE WEBRTC ---
         if (window.lucide) window.lucide.createIcons();
-        const PREFIX = "ecwebpro-";
+        const PREFIX = "ecsend-";
         let myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
         let myPeerId = PREFIX + myRawCode;
         
