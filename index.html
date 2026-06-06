@@ -987,12 +987,26 @@
         }
 
         function finishSendingFile() {
-            document.getElementById('transfer-title').innerText = '¡Enviado!';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            if (window.lucide) window.lucide.createIcons();
-            document.getElementById('btn-transfer-close').classList.remove('hidden');
-            if (selectedFiles.length > 0) selectedFiles.shift(); 
-            renderFileList();
+            // 1. Quitamos de la lista el archivo que acaba de terminar exitosamente
+            if (selectedFiles.length > 0) {
+                selectedFiles.shift(); 
+                renderFileList();
+            }
+            
+            // 2. Revisamos si quedan más archivos por enviar en la cola
+            if (selectedFiles.length > 0) {
+                // Hay más archivos: damos un pequeño respiro de medio segundo e iniciamos el siguiente
+                document.getElementById('transfer-title').innerText = 'Preparando siguiente...';
+                setTimeout(() => {
+                    window.sendSelectedFiles();
+                }, 500);
+            } else {
+                // No quedan archivos: mostramos la pantalla de éxito total
+                document.getElementById('transfer-title').innerText = '¡Enviado!';
+                document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+                if (window.lucide) window.lucide.createIcons();
+                document.getElementById('btn-transfer-close').classList.remove('hidden');
+            }
         }
 
         function finishReceivingFile() {
