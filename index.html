@@ -714,6 +714,13 @@
         let selectedFiles = [];
         let keepAliveInterval = null;
 
+        // Nuevas variables para rastrear el Lote (Batch) completo
+        window.batchTotalSize = 0;
+        window.batchTotalFiles = 0;
+        window.batchBytesSent = 0;
+        window.batchCurrentIndex = 1;
+        window.batchBytesReceived = 0;
+
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
         // --- CARGA RÁPIDA ESTALINGRADO ---
@@ -852,16 +859,47 @@
 
                     if (msg.type === 'header') {
                         incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
-                        openTransferModal(msg.name, msg.size, 'receive');
+                        
+                        // Si es el inicio de un lote, reiniciamos variables del receptor y abrimos modal
+                        if (msg.batchCurrentIndex === 1) {
+                            window.batchBytesReceived = 0;
+                            openTransferModal(
+                                msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
+                                msg.batchTotalSize, 
+                                'receive'
+                            );
+                        } else {
+                            document.getElementById('transfer-filename').innerText = `Recibiendo archivo ${msg.batchCurrentIndex} de ${msg.batchTotalFiles}...`;
+                        }
                     } else if (msg.type === 'eof') {
                         try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
-                        finishReceivingFile();
+                        processIncomingFile();
+                        
+                        // Revisamos si hemos recibido el último archivo
+                        if (incomingFileInfo.batchCurrentIndex >= incomingFileInfo.batchTotalFiles) {
+                            finishReceivingBatch();
+                        }
                     } else if (msg.type === 'eof-ack') {
-                        finishSendingFile();
+                        // El receptor confirmó el archivo actual, pasamos al siguiente
+                        if (selectedFiles.length > 0) {
+                            selectedFiles.shift(); 
+                            renderFileList();
+                        }
+                        
+                        if (selectedFiles.length > 0) {
+                            window.batchCurrentIndex++;
+                            document.getElementById('transfer-title').innerText = 'Preparando siguiente...';
+                            setTimeout(() => sendNextFile(), 50);
+                        } else {
+                            finishSendingBatch();
+                        }
                     }
                 } else {
                     incomingData.push(data); incomingBytes += data.byteLength;
-                    if (incomingFileInfo) updateTransferProgress(incomingBytes, incomingFileInfo.size);
+                    window.batchBytesReceived += data.byteLength;
+                    
+                    // Actualizar barra basada en el tamaño total de todo el lote
+                    if (incomingFileInfo) updateTransferProgress(window.batchBytesReceived, incomingFileInfo.batchTotalSize);
                 }
             });
             conn.on('close', () => {
@@ -954,11 +992,42 @@
             }
         }
 
-        window.sendSelectedFiles = () => {
+        window.startBatchTransfer = () => {
+            if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
+            
+            // Calculamos el peso y cantidad total del Lote antes de empezar
+            window.batchTotalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+            window.batchTotalFiles = selectedFiles.length;
+            window.batchBytesSent = 0;
+            window.batchCurrentIndex = 1;
+            
+            sendNextFile();
+        };
+
+        function sendNextFile() {
             if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             const file = selectedFiles[0]; 
-            openTransferModal(file.name, file.size, 'send');
-            activeConnection.send(JSON.stringify({ type: 'header', name: file.name, size: file.size, mime: file.type }));
+            
+            if (window.batchCurrentIndex === 1) {
+                openTransferModal(
+                    window.batchTotalFiles > 1 ? `Enviando ${window.batchTotalFiles} archivos...` : file.name, 
+                    window.batchTotalSize, 
+                    'send'
+                );
+            } else {
+                document.getElementById('transfer-filename').innerText = `Enviando archivo ${window.batchCurrentIndex} de ${window.batchTotalFiles}...`;
+                document.getElementById('transfer-title').innerText = 'Enviando...';
+            }
+
+            activeConnection.send(JSON.stringify({ 
+                type: 'header', 
+                name: file.name, 
+                size: file.size, 
+                mime: file.type,
+                batchTotalSize: window.batchTotalSize,
+                batchTotalFiles: window.batchTotalFiles,
+                batchCurrentIndex: window.batchCurrentIndex
+            }));
 
             const chunkSize = 64 * 1024; let offset = 0;
             const MAX_BUFFER = 16 * 1024 * 1024;
@@ -972,7 +1041,10 @@
                 reader.onload = (e) => {
                     activeConnection.send(e.target.result);
                     offset += e.target.result.byteLength;
-                    updateTransferProgress(offset, file.size);
+                    window.batchBytesSent += e.target.result.byteLength;
+                    
+                    updateTransferProgress(window.batchBytesSent, window.batchTotalSize);
+                    
                     if (offset < file.size) setTimeout(readNextChunk, 5); 
                     else { 
                         activeConnection.send(JSON.stringify({ type: 'eof' }));
@@ -983,7 +1055,7 @@
                 reader.readAsArrayBuffer(slice);
             };
             setTimeout(readNextChunk, 100);
-        };
+        }
 
         // --- MODAL Y RESULTADO ---
         function openTransferModal(filename, size, mode) {
@@ -993,7 +1065,11 @@
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
             document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
             if (window.lucide) window.lucide.createIcons();
-            updateTransferProgress(0, size);
+            
+            // Solo reinicia al 0 si es el inicio del lote (esto evita parpadeos al continuar la transferencia)
+            if (window.batchCurrentIndex === 1) {
+                updateTransferProgress(0, size);
+            }
         }
 
         function updateTransferProgress(current, total) {
@@ -1003,38 +1079,9 @@
             document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
         }
 
-        function finishSendingFile() {
-            // 1. Quitamos de la lista el archivo que acaba de terminar exitosamente
-            if (selectedFiles.length > 0) {
-                selectedFiles.shift(); 
-                renderFileList();
-            }
-            
-            // 2. Revisamos si quedan más archivos por enviar en la cola
-            if (selectedFiles.length > 0) {
-                // Hay más archivos: damos un pequeño respiro de medio segundo e iniciamos el siguiente
-                document.getElementById('transfer-title').innerText = 'Preparando siguiente...';
-                setTimeout(() => {
-                    window.sendSelectedFiles();
-                }, 500);
-            } else {
-                // No quedan archivos: mostramos la pantalla de éxito total
-                document.getElementById('transfer-title').innerText = '¡Enviado!';
-                document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-                if (window.lucide) window.lucide.createIcons();
-                document.getElementById('btn-transfer-close').classList.remove('hidden');
-            }
-        }
-
-        function finishReceivingFile() {
-            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
-            if (window.lucide) window.lucide.createIcons();
-            document.getElementById('transfer-progress-bar').style.width = '100%';
-            document.getElementById('btn-transfer-close').classList.remove('hidden');
-
+        function processIncomingFile() {
+            // Guarda el archivo individual que acaba de llegar (incluso si la barra total no ha llegado al 100%)
             playBeep('receive');
-
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
             const url = URL.createObjectURL(blob);
             
@@ -1054,6 +1101,25 @@
             if (window.lucide) window.lucide.createIcons();
 
             const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+        }
+
+        function finishSendingBatch() {
+            document.getElementById('transfer-title').innerText = '¡Enviado!';
+            document.getElementById('transfer-filename').innerText = 'Todos los archivos transferidos';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            if (window.lucide) window.lucide.createIcons();
+            document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
+            renderFileList(); // La lista ahora está vacía
+        }
+
+        function finishReceivingBatch() {
+            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
+            document.getElementById('transfer-filename').innerText = 'Todos los archivos recibidos';
+            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            if (window.lucide) window.lucide.createIcons();
+            document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
 
         // --- SISTEMA DE CHAT P2P ---
