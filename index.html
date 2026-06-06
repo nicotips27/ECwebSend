@@ -992,7 +992,7 @@
             }
         }
 
-        window.startBatchTransfer = () => {
+        window.sendSelectedFiles = () => {
             if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             
             // Calculamos el peso y cantidad total del Lote antes de empezar
