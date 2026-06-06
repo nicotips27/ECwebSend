@@ -463,24 +463,45 @@
 
     <div id="modal-chat" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[80] hidden flex flex-col transition-opacity">
         <div class="glass-panel w-full max-w-md mx-auto h-full flex flex-col shadow-2xl relative">
-            <div class="px-5 py-4 border-b border-white/10 flex justify-between items-center bg-zinc-900/50 pt-8">
-                <h3 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                    <i data-lucide="message-square" class="w-5 h-5 text-primary"></i> Chat P2P Cifrado
-                </h3>
-                <button onclick="window.toggleChat()" class="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-800 rounded-full">
+            
+            <!-- NUEVA CABECERA DE CHAT -->
+            <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-zinc-900/60 backdrop-blur-xl pt-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary p-[2px] shadow-[0_0_15px_rgba(14,165,233,0.3)]">
+                        <div class="w-full h-full bg-dark rounded-full flex items-center justify-center relative">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-primary"></i>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-dark rounded-full"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white leading-tight">Chat P2P</h3>
+                        <p class="text-[10px] text-zinc-400 font-medium tracking-wide">Cifrado de extremo a extremo</p>
+                    </div>
+                </div>
+                <button onclick="window.toggleChat()" class="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-800/50 hover:bg-zinc-700 rounded-full border border-white/5 active:scale-95">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
-            <div id="chat-messages" class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-3 flex flex-col pb-6">
-                <div class="text-center text-[10px] text-zinc-500 my-2 bg-zinc-900/50 py-1.5 px-3 rounded-full self-center border border-white/5">Conexión directa: los mensajes no se guardan en servidores</div>
+            <!-- ÁREA DE MENSAJES RENOVADA -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-4 flex flex-col pb-6">
+                <div class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-10">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                        <i data-lucide="lock" class="w-8 h-8 text-primary"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-zinc-300 uppercase tracking-widest">Conexión Segura</p>
+                    <p class="text-[10px] text-zinc-500 max-w-[200px] mt-1.5 leading-relaxed">Los mensajes no pasan por ningún servidor y se auto-destruyen al desconectar.</p>
+                </div>
             </div>
 
-            <div class="p-4 border-t border-white/10 bg-zinc-900/80 flex gap-2 pb-8">
-                <input type="text" id="chat-input" placeholder="Escribe un mensaje..." class="flex-1 bg-zinc-800/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all placeholder:text-zinc-500" onkeypress="if(event.key === 'Enter') window.sendChatMessage()">
-                <button onclick="window.sendChatMessage()" class="w-12 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 shrink-0">
-                    <i data-lucide="send" class="w-5 h-5"></i>
-                </button>
+            <!-- CAJA DE TEXTO ESTILO PÍLDORA -->
+            <div class="p-4 border-t border-white/5 bg-zinc-900/80 backdrop-blur-xl pb-8">
+                <div class="flex items-end gap-2 bg-zinc-800/50 border border-white/10 rounded-3xl p-1 shadow-inner focus-within:border-primary/50 transition-colors">
+                    <input type="text" id="chat-input" placeholder="Escribe un mensaje..." class="flex-1 bg-transparent px-4 py-3 text-white text-sm focus:outline-none placeholder:text-zinc-500" onkeypress="if(event.key === 'Enter') window.sendChatMessage()">
+                    <button onclick="window.sendChatMessage()" class="w-10 h-10 mb-0.5 mr-0.5 bg-gradient-to-br from-primary to-secondary hover:opacity-90 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 shrink-0">
+                        <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -930,7 +951,16 @@
             document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
             
             document.getElementById('btn-floating-chat').classList.add('hidden');
-            document.getElementById('chat-messages').innerHTML = '<div class="text-center text-[10px] text-zinc-500 my-2 bg-zinc-900/50 py-1.5 px-3 rounded-full self-center border border-white/5">Conexión directa: los mensajes no se guardan en servidores</div>';
+            
+            // Restablecer el estado vacío del chat con el nuevo diseño
+            document.getElementById('chat-messages').innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-10">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                        <i data-lucide="lock" class="w-8 h-8 text-primary"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-zinc-300 uppercase tracking-widest">Conexión Segura</p>
+                    <p class="text-[10px] text-zinc-500 max-w-[200px] mt-1.5 leading-relaxed">Los mensajes no pasan por ningún servidor y se auto-destruyen al desconectar.</p>
+                </div>`;
             unreadChatMessages = 0;
             if (window.updateChatBadge) window.updateChatBadge();
 
@@ -1061,6 +1091,7 @@
         function openTransferModal(filename, size, mode) {
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
+            document.getElementById('btn-transfer-cancel').classList.remove('hidden');
             document.getElementById('transfer-filename').innerText = filename;
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
             document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
@@ -1109,6 +1140,7 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-cancel').classList.add('hidden');
             document.getElementById('btn-transfer-close').classList.remove('hidden');
             renderFileList(); // La lista ahora está vacía
         }
@@ -1119,6 +1151,7 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-cancel').classList.add('hidden');
             document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
 
@@ -1160,10 +1193,27 @@
 
         function appendChatMessage(text, origin) {
             const container = document.getElementById('chat-messages');
+            
+            // Quitar el cartel de "Conexión segura" si es el primer mensaje
+            const emptyState = container.querySelector('.mt-10');
+            if (emptyState) emptyState.remove();
+
             const div = document.createElement('div');
-            if (origin === 'local') div.className = "self-end bg-primary text-white text-sm py-2.5 px-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md break-words";
-            else div.className = "self-start bg-zinc-800 text-zinc-200 text-sm py-2.5 px-4 rounded-2xl rounded-tl-sm max-w-[85%] shadow-md border border-white/5 break-words";
-            div.innerText = text;
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            div.className = `flex flex-col max-w-[85%] animate-slide-up ${origin === 'local' ? 'self-end items-end' : 'self-start items-start'}`;
+            
+            let bubbleClass = origin === 'local' 
+                ? "bg-gradient-to-br from-primary to-secondary text-white rounded-2xl rounded-tr-sm shadow-[0_4px_15px_rgba(14,165,233,0.2)] border border-primary/30" 
+                : "bg-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm shadow-md border border-white/5";
+
+            div.innerHTML = `
+                <div class="py-2.5 px-4 text-[13px] leading-relaxed break-words ${bubbleClass}">
+                    ${text}
+                </div>
+                <span class="text-[9px] text-zinc-500 mt-1 px-1 font-medium tracking-wide">${time}</span>
+            `;
+            
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
