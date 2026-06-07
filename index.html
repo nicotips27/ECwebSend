@@ -1153,11 +1153,19 @@
             }
 
             // Detección avanzada de caídas de red (WebRTC ICE State)
+            let iceTimeout = null;
             if (conn.peerConnection) {
                 conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
                     const state = conn.peerConnection.iceConnectionState;
-                    if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-                        if (activeConnection === conn) conn.close(); // Fuerza el evento close
+                    if (state === 'disconnected') {
+                        // Dar 30 segundos de gracia cuando el navegador se va a segundo plano (ej. al abrir la galería)
+                        iceTimeout = setTimeout(() => {
+                            if (activeConnection === conn) conn.close();
+                        }, 30000);
+                    } else if (state === 'connected' || state === 'completed') {
+                        if (iceTimeout) clearTimeout(iceTimeout);
+                    } else if (state === 'failed' || state === 'closed') {
+                        if (activeConnection === conn) conn.close();
                     }
                 });
             }
