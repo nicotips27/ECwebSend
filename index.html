@@ -565,6 +565,7 @@
 
         // --- LECTOR DE CÓDIGOS QR MEDIANTE LA CÁMARA ---
         let html5QrCode = null;
+        window.isQRScanning = false;
 
         window.startQRScanner = () => {
             document.getElementById('modal-scanner').classList.remove('hidden');
@@ -577,14 +578,12 @@
             
             html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
                 let codeToConnect = "";
-                try {
-                    if (decodedText.includes('?connect=')) {
-                        const urlParams = new URLSearchParams(decodedText.split('?')[1]);
-                        codeToConnect = urlParams.get('connect');
-                    } else if (decodedText.length === 6 && !isNaN(decodedText)) {
-                        codeToConnect = decodedText;
-                    }
-                } catch(e) {}
+                
+                // Regex robusto para extraer el código de 6 dígitos, ya sea desde una URL completa o el código puro
+                const match = decodedText.match(/(?:connect=|^)(\d{6})(?:$|&)/);
+                if (match) {
+                    codeToConnect = match[1];
+                }
 
                 if (codeToConnect && codeToConnect.length === 6) {
                     window.stopQRScanner();
@@ -597,10 +596,13 @@
                         counterEl.classList.replace('text-zinc-400', 'text-primary');
                         counterEl.classList.replace('bg-zinc-800', 'bg-primary/20');
                     }
-                    setTimeout(() => window.connectToPeer(), 500);
+                    setTimeout(() => window.connectToPeer(), 800);
                 }
             }, (errorMessage) => {
-                // Ignore silent errors during scanning
+                // Ignorar errores silenciosos mientras busca
+            }).then(() => {
+                // Marcar como activo de forma segura
+                window.isQRScanning = true;
             }).catch((err) => {
                 window.showToast("No se pudo acceder a la cámara", "error");
                 window.stopQRScanner();
@@ -609,8 +611,11 @@
 
         window.stopQRScanner = () => {
             document.getElementById('modal-scanner').classList.add('hidden');
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.error(err));
+            // Solo detenemos si sabemos con certeza que está encendida
+            if (html5QrCode && window.isQRScanning) {
+                html5QrCode.stop().then(() => {
+                    window.isQRScanning = false;
+                }).catch(err => console.error("Error al apagar cámara:", err));
             }
         };
 
@@ -754,9 +759,11 @@
         requestAnimationFrame(animateLoader);
 
         if (window.QRious) {
+            // Usar origin + pathname para crear enlaces más limpios y seguros
+            const qrUrl = window.location.origin + window.location.pathname + `?connect=${myRawCode}`;
             new window.QRious({
                 element: document.getElementById('qr-canvas'),
-                value: window.location.href.split('?')[0] + `?connect=${myRawCode}`,
+                value: qrUrl,
                 size: 200, background: '#ffffff', foreground: '#09090b', level: 'M'
             });
         }
@@ -1303,9 +1310,10 @@
             document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
             
             if (window.QRious) {
+                const qrUrl = window.location.origin + window.location.pathname + `?connect=${myRawCode}`;
                 new window.QRious({
                     element: document.getElementById('qr-canvas'),
-                    value: window.location.href.split('?')[0] + `?connect=${myRawCode}`,
+                    value: qrUrl,
                     size: 200, background: '#ffffff', foreground: '#09090b', level: 'M'
                 });
             }
