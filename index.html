@@ -623,33 +623,61 @@
         };
         if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
 
-        // Generador de Sonidos Bip
+        // Generador de Sonidos Bip Mejorado (Envolventes suaves y armónicos)
         let audioCtx = null;
+
+        function playTone(freq, type, startTime, duration, vol) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            // Envolvente para evitar "clicks" de audio (Ataque rápido, decaimiento exponencial)
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        }
+
         function playBeep(type) {
             try {
                 if (!appSettings.sounds) return;
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
+                const t = audioCtx.currentTime;
+
                 if (type === 'connect') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                    // Tono de conexión: Doble campana suave y alegre
+                    playTone(600, 'sine', t, 0.15, 0.1);
+                    playTone(800, 'sine', t + 0.1, 0.25, 0.1);
                 } else if (type === 'receive') {
-                    osc.type = 'square'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-                    setTimeout(() => {
-                        try {
-                            const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
-                            osc2.connect(gain2); gain2.connect(audioCtx.destination);
-                            osc2.type = 'square'; osc2.frequency.setValueAtTime(1600, audioCtx.currentTime);
-                            gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                            osc2.start(); osc2.stop(audioCtx.currentTime + 0.15);
-                        } catch(e){}
-                    }, 150);
+                    // Tono de archivo recibido: Arpegio ascendente majestuoso (Acorde mayor)
+                    playTone(523.25, 'sine', t, 0.2, 0.1);       // Do
+                    playTone(659.25, 'sine', t + 0.1, 0.2, 0.1); // Mi
+                    playTone(783.99, 'sine', t + 0.2, 0.4, 0.1); // Sol
+                } else if (type === 'chat') {
+                    // Tono de chat: Burbuja rápida / Pop
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    
+                    // Caída rápida de tono para simular una burbuja
+                    osc.frequency.setValueAtTime(800, t);
+                    osc.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+                    
+                    gain.gain.setValueAtTime(0, t);
+                    gain.gain.linearRampToValueAtTime(0.15, t + 0.01);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+                    
+                    osc.start(t);
+                    osc.stop(t + 0.1);
                 }
             } catch(e) {
                 console.warn("Sonido silenciado por política del navegador.", e);
@@ -1192,7 +1220,7 @@
         };
 
         window.receiveChatMessage = (text) => {
-            playBeep('connect'); 
+            playBeep('chat'); 
             appendChatMessage(text, 'remote');
             if (!isChatOpen) {
                 unreadChatMessages++;
