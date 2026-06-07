@@ -726,6 +726,10 @@
                     
                     osc.start(t);
                     osc.stop(t + 0.1);
+                } else if (type === 'disconnect') {
+                    // Tono de desconexión: Alerta descendente
+                    playTone(400, 'triangle', t, 0.15, 0.1);
+                    playTone(300, 'triangle', t + 0.15, 0.3, 0.1);
                 }
             } catch(e) {
                 console.warn("Sonido silenciado por política del navegador.", e);
@@ -923,6 +927,16 @@
             playBeep('connect');
             stopCodeTimer();
 
+            // Detección avanzada de caídas de red (WebRTC ICE State)
+            if (conn.peerConnection) {
+                conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
+                    const state = conn.peerConnection.iceConnectionState;
+                    if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                        if (activeConnection === conn) conn.close(); // Fuerza el evento close
+                    }
+                });
+            }
+
             clearInterval(keepAliveInterval);
             keepAliveInterval = setInterval(() => {
                 if (activeConnection && activeConnection.open) {
@@ -994,7 +1008,16 @@
                 }
             });
             conn.on('close', () => {
-                window.showToast('El dispositivo se desconectó.', 'info');
+                playBeep('disconnect');
+                window.showToast('Se perdió la conexión con el dispositivo.', 'error');
+                
+                // Si había una transferencia en progreso, la cancelamos visualmente
+                const transferModal = document.getElementById('modal-transfer');
+                if (!transferModal.classList.contains('hidden')) {
+                    window.closeTransferModal();
+                    setTimeout(() => window.showToast('Transferencia interrumpida', 'error'), 500);
+                }
+                
                 resetConnectionUI();
             });
         }
