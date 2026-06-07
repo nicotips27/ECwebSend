@@ -1308,16 +1308,16 @@
         function renderFileList() {
             const list = document.getElementById('list-selected');
             const clearBtn = document.getElementById('btn-clear-files');
-            list.innerHTML = '';
             clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
 
+            let htmlString = '';
             selectedFiles.forEach((file, idx) => {
                 const size = (file.size / (1024*1024)).toFixed(2);
                 const isContact = file.name.toLowerCase().endsWith('.vcf') || file.type.includes('vcard');
                 const icon = isContact ? 'users' : 'file-text';
                 const iconColor = isContact ? 'text-yellow-400' : 'text-primary';
 
-                list.innerHTML += `
+                htmlString += `
                     <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-white/5">
                         <div class="flex items-center gap-3 overflow-hidden">
                             <i data-lucide="${icon}" class="w-5 h-5 ${iconColor} shrink-0"></i>
@@ -1329,12 +1329,16 @@
                         <button onclick="window.removeFile(${idx})" class="p-2 text-zinc-500 hover:text-red-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </li>`;
             });
+            
+            list.innerHTML = htmlString;
             if (window.lucide) window.lucide.createIcons();
             updateSendButton();
         }
 
         function updateSendButton() {
             const btn = document.getElementById('btn-send');
+            if (!btn) return;
+
             if (selectedFiles.length > 0 && activeConnection && activeConnection.open) {
                 btn.disabled = false;
                 btn.className = "w-full py-4 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(14,165,233,0.3)] active:scale-95";
@@ -1342,6 +1346,10 @@
                 btn.disabled = true;
                 btn.className = "w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed";
             }
+            
+            // Forzamos el contenido interno para evitar que se dupliquen elementos visuales
+            btn.innerHTML = `<i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos`;
+            if (window.lucide) window.lucide.createIcons();
         }
 
         window.sendSelectedFiles = () => {
@@ -1425,7 +1433,10 @@
             
             document.getElementById('transfer-filename').innerText = filename;
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
+            
+            // Recreamos el ícono limpiamente
+            const iconContainer = document.getElementById('transfer-icon-container');
+            iconContainer.innerHTML = `<i data-lucide="${mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle'}" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
             if (window.lucide) window.lucide.createIcons();
             
             if (window.batchCurrentIndex === 1) {
@@ -1451,8 +1462,10 @@
 
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
-            list.innerHTML = `
-                <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5">
+            
+            // Insertamos de manera segura para evitar repintar los íconos antiguos
+            const newItemHtml = `
+                <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <div class="p-2 ${iconColorClass} rounded-lg shrink-0"><i data-lucide="${icon}" class="w-4 h-4"></i></div>
                         <div class="truncate">
@@ -1461,7 +1474,9 @@
                         </div>
                     </div>
                     <a href="${url}" download="${incomingFileInfo.name}" class="p-2 text-primary bg-primary/10 rounded-lg"><i data-lucide="download" class="w-4 h-4"></i></a>
-                </li>` + list.innerHTML;
+                </li>`;
+            
+            list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
             const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
@@ -1472,8 +1487,12 @@
         function finishSendingBatch() {
             document.getElementById('transfer-title').innerText = '¡Enviado!';
             document.getElementById('transfer-filename').innerText = 'Todos los archivos transferidos';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            
+            // Recreamos el ícono limpiamente
+            const iconContainer = document.getElementById('transfer-icon-container');
+            iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
             if (window.lucide) window.lucide.createIcons();
+            
             document.getElementById('transfer-progress-bar').style.width = '100%';
             document.getElementById('btn-transfer-close').classList.remove('hidden');
             renderFileList(); 
@@ -1482,8 +1501,11 @@
         function finishReceivingBatch() {
             document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
             document.getElementById('transfer-filename').innerText = 'Todos los archivos recibidos';
-            document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
+            
+            const iconContainer = document.getElementById('transfer-icon-container');
+            iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
             if (window.lucide) window.lucide.createIcons();
+            
             document.getElementById('transfer-progress-bar').style.width = '100%';
             document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
