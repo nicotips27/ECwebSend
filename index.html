@@ -318,7 +318,7 @@
                     </div>
                 </div>
 
-                <!-- Sobre este programa (NUEVO) -->
+                <!-- Sobre este programa -->
                 <div class="glass-panel rounded-3xl p-5 flex flex-col items-center text-center mt-6 border-t border-white/10 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
                     
@@ -373,7 +373,7 @@
 
     <!-- MODALES: AYUDA, QR GENERADOR, TRANSFERENCIA Y CHAT -->
     
-    <!-- MODAL DE AYUDA (NUEVO) -->
+    <!-- MODAL DE AYUDA -->
     <div id="modal-help" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleHelpModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
@@ -449,8 +449,9 @@
                 <span id="transfer-percent" class="text-primary font-bold">0%</span>
             </div>
 
+            <!-- Botón corregido, solo cerramos cuando termina -->
             <button id="btn-transfer-close" onclick="window.closeTransferModal()" class="hidden px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-all border border-white/5">
-                Cerrar
+                Aceptar
             </button>
         </div>
     </div>
@@ -464,7 +465,6 @@
     <div id="modal-chat" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[80] hidden flex flex-col transition-opacity">
         <div class="glass-panel w-full max-w-md mx-auto h-full flex flex-col shadow-2xl relative">
             
-            <!-- NUEVA CABECERA DE CHAT -->
             <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-zinc-900/60 backdrop-blur-xl pt-6">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary p-[2px] shadow-[0_0_15px_rgba(14,165,233,0.3)]">
@@ -483,7 +483,6 @@
                 </button>
             </div>
             
-            <!-- ÁREA DE MENSAJES RENOVADA -->
             <div id="chat-messages" class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-4 flex flex-col pb-6">
                 <div class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-10">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
@@ -494,7 +493,6 @@
                 </div>
             </div>
 
-            <!-- CAJA DE TEXTO ESTILO PÍLDORA -->
             <div class="p-4 border-t border-white/5 bg-zinc-900/80 backdrop-blur-xl pb-8">
                 <div class="flex items-end gap-2 bg-zinc-800/50 border border-white/10 rounded-3xl p-1 shadow-inner focus-within:border-primary/50 transition-colors">
                     <input type="text" id="chat-input" placeholder="Escribe un mensaje..." class="flex-1 bg-transparent px-4 py-3 text-white text-sm focus:outline-none placeholder:text-zinc-500" onkeypress="if(event.key === 'Enter') window.sendChatMessage()">
@@ -578,7 +576,6 @@
             const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
             
             html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-                // Éxito al escanear
                 let codeToConnect = "";
                 try {
                     if (decodedText.includes('?connect=')) {
@@ -624,7 +621,6 @@
             sounds: true,
             dynamicBg: true
         };
-        // Compatibilidad con usuarios que ya tenían la app guardada sin este ajuste
         if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
 
         // Generador de Sonidos Bip
@@ -665,7 +661,6 @@
         document.getElementById('setting-network').value = appSettings.network;
         
         function updateUIStates() {
-            // Actualizar switch de Sonido
             const soundUi = document.getElementById('toggle-sound-ui');
             const soundCircle = document.getElementById('toggle-sound-circle');
             if (soundUi && soundCircle) {
@@ -678,7 +673,6 @@
                 }
             }
             
-            // Actualizar switch y visibilidad del Fondo Dinámico
             const bgUi = document.getElementById('toggle-bg-ui');
             const bgCircle = document.getElementById('toggle-bg-circle');
             const bgContainer = document.getElementById('dynamic-bg');
@@ -696,7 +690,6 @@
         }
         updateUIStates();
 
-        // Guardar cambios en Ajustes
         document.getElementById('setting-username').addEventListener('change', (e) => {
             appSettings.username = e.target.value.trim() || 'Dispositivo';
             localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
@@ -735,7 +728,6 @@
         let selectedFiles = [];
         let keepAliveInterval = null;
 
-        // Nuevas variables para rastrear el Lote (Batch) completo
         window.batchTotalSize = 0;
         window.batchTotalFiles = 0;
         window.batchBytesSent = 0;
@@ -761,7 +753,6 @@
         }
         requestAnimationFrame(animateLoader);
 
-        // QR
         if (window.QRious) {
             new window.QRious({
                 element: document.getElementById('qr-canvas'),
@@ -779,7 +770,7 @@
             });
         };
 
-        // --- INICIAR PEERJS CON AJUSTES ---
+        // --- INICIAR PEERJS ---
         function initPeer() {
             try {
                 if (typeof Peer === 'undefined') return console.warn("PeerJS no cargó.");
@@ -848,7 +839,7 @@
             });
         };
 
-        // --- SISTEMA WEBRTC CORE ---
+        // --- SISTEMA WEBRTC CORE CORREGIDO ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
@@ -865,61 +856,64 @@
 
             conn.on('data', (data) => {
                 if (typeof data === 'string') {
-                    const msg = JSON.parse(data);
-                    if (msg.type === 'ping') return;
-                    
-                    if (msg.type === 'handshake') {
-                        document.getElementById('connection-status-text').innerText = `Conectado con: ${msg.username}`;
-                        return;
-                    }
+                    try {
+                        const msg = JSON.parse(data);
+                        if (msg.type === 'ping') return;
+                        
+                        if (msg.type === 'handshake') {
+                            document.getElementById('connection-status-text').innerText = `Conectado con: ${msg.username}`;
+                            return;
+                        }
 
-                    if (msg.type === 'chat') {
-                        window.receiveChatMessage(msg.text);
-                        return;
-                    }
+                        if (msg.type === 'chat') {
+                            window.receiveChatMessage(msg.text);
+                            return;
+                        }
 
-                    if (msg.type === 'header') {
-                        incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
-                        
-                        // Si es el inicio de un lote, reiniciamos variables del receptor y abrimos modal
-                        if (msg.batchCurrentIndex === 1) {
-                            window.batchBytesReceived = 0;
-                            openTransferModal(
-                                msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
-                                msg.batchTotalSize, 
-                                'receive'
-                            );
-                        } else {
-                            document.getElementById('transfer-filename').innerText = `Recibiendo archivo ${msg.batchCurrentIndex} de ${msg.batchTotalFiles}...`;
+                        if (msg.type === 'header') {
+                            incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
+                            
+                            if (msg.batchCurrentIndex === 1) {
+                                window.batchBytesReceived = 0;
+                                openTransferModal(
+                                    msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
+                                    msg.batchTotalSize, 
+                                    'receive'
+                                );
+                            } else {
+                                document.getElementById('transfer-filename').innerText = `Recibiendo archivo ${msg.batchCurrentIndex} de ${msg.batchTotalFiles}...`;
+                            }
+                        } else if (msg.type === 'eof') {
+                            try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
+                            processIncomingFile();
+                            
+                            if (incomingFileInfo.batchCurrentIndex >= incomingFileInfo.batchTotalFiles) {
+                                finishReceivingBatch();
+                            }
+                        } else if (msg.type === 'eof-ack') {
+                            if (selectedFiles.length > 0) {
+                                selectedFiles.shift(); 
+                                renderFileList();
+                            }
+                            
+                            if (selectedFiles.length > 0) {
+                                window.batchCurrentIndex++;
+                                document.getElementById('transfer-title').innerText = 'Preparando siguiente...';
+                                setTimeout(() => sendNextFile(), 50);
+                            } else {
+                                finishSendingBatch();
+                            }
                         }
-                    } else if (msg.type === 'eof') {
-                        try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
-                        processIncomingFile();
-                        
-                        // Revisamos si hemos recibido el último archivo
-                        if (incomingFileInfo.batchCurrentIndex >= incomingFileInfo.batchTotalFiles) {
-                            finishReceivingBatch();
-                        }
-                    } else if (msg.type === 'eof-ack') {
-                        // El receptor confirmó el archivo actual, pasamos al siguiente
-                        if (selectedFiles.length > 0) {
-                            selectedFiles.shift(); 
-                            renderFileList();
-                        }
-                        
-                        if (selectedFiles.length > 0) {
-                            window.batchCurrentIndex++;
-                            document.getElementById('transfer-title').innerText = 'Preparando siguiente...';
-                            setTimeout(() => sendNextFile(), 50);
-                        } else {
-                            finishSendingBatch();
-                        }
+                    } catch(e) {
+                        console.warn("Mensaje JSON corrupto", e);
                     }
                 } else {
-                    incomingData.push(data); incomingBytes += data.byteLength;
-                    window.batchBytesReceived += data.byteLength;
+                    // Corrección: Soporte mejorado para calcular los bytes recibidos sin NaN
+                    const chunkLength = data.byteLength || data.size || data.length || 0;
+                    incomingData.push(data); 
+                    incomingBytes += chunkLength;
+                    window.batchBytesReceived += chunkLength;
                     
-                    // Actualizar barra basada en el tamaño total de todo el lote
                     if (incomingFileInfo) updateTransferProgress(window.batchBytesReceived, incomingFileInfo.batchTotalSize);
                 }
             });
@@ -952,7 +946,6 @@
             
             document.getElementById('btn-floating-chat').classList.add('hidden');
             
-            // Restablecer el estado vacío del chat con el nuevo diseño
             document.getElementById('chat-messages').innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-10">
                     <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
@@ -1025,7 +1018,6 @@
         window.sendSelectedFiles = () => {
             if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             
-            // Calculamos el peso y cantidad total del Lote antes de empezar
             window.batchTotalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
             window.batchTotalFiles = selectedFiles.length;
             window.batchBytesSent = 0;
@@ -1059,45 +1051,56 @@
                 batchCurrentIndex: window.batchCurrentIndex
             }));
 
-            const chunkSize = 64 * 1024; let offset = 0;
-            const MAX_BUFFER = 16 * 1024 * 1024;
+            // Mejora de estabilidad: Chunk de 16KB para no saturar WebRTC
+            const chunkSize = 16 * 1024; let offset = 0;
+            const MAX_BUFFER = 2 * 1024 * 1024; // 2MB max permitidos en buffer
             
             const readNextChunk = () => {
-                if (activeConnection.dataChannel && activeConnection.dataChannel.bufferedAmount > MAX_BUFFER) {
-                    setTimeout(readNextChunk, 50); return;
+                // Controlar saturación de WebRTC
+                const dc = activeConnection.dataChannel;
+                if (dc && dc.bufferedAmount > MAX_BUFFER) {
+                    setTimeout(readNextChunk, 50); 
+                    return;
                 }
                 const slice = file.slice(offset, offset + chunkSize);
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    activeConnection.send(e.target.result);
-                    offset += e.target.result.byteLength;
-                    window.batchBytesSent += e.target.result.byteLength;
-                    
-                    updateTransferProgress(window.batchBytesSent, window.batchTotalSize);
-                    
-                    if (offset < file.size) setTimeout(readNextChunk, 5); 
-                    else { 
-                        activeConnection.send(JSON.stringify({ type: 'eof' }));
-                        document.getElementById('transfer-title').innerText = 'Guardando...';
-                        document.getElementById('transfer-size-info').innerText = 'Esperando confirmación...';
+                    try {
+                        activeConnection.send(e.target.result);
+                        const sentBytes = e.target.result.byteLength || e.target.result.size || 0;
+                        offset += sentBytes;
+                        window.batchBytesSent += sentBytes;
+                        
+                        updateTransferProgress(window.batchBytesSent, window.batchTotalSize);
+                        
+                        if (offset < file.size) {
+                            setTimeout(readNextChunk, 2); 
+                        } else { 
+                            activeConnection.send(JSON.stringify({ type: 'eof' }));
+                            document.getElementById('transfer-title').innerText = 'Guardando...';
+                            document.getElementById('transfer-size-info').innerText = 'Esperando confirmación...';
+                        }
+                    } catch(err) {
+                        console.error("Fallo enviando WebRTC chunk", err);
                     }
                 };
                 reader.readAsArrayBuffer(slice);
             };
-            setTimeout(readNextChunk, 100);
+            setTimeout(readNextChunk, 50);
         }
 
-        // --- MODAL Y RESULTADO ---
+        // --- MODAL Y RESULTADO CORREGIDO ---
         function openTransferModal(filename, size, mode) {
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
-            document.getElementById('btn-transfer-cancel').classList.remove('hidden');
+            
+            // EL BUG ESTABA AQUÍ: Eliminado el intento de esconder un "btn-transfer-cancel" que no existe
+            
             document.getElementById('transfer-filename').innerText = filename;
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
             document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
             if (window.lucide) window.lucide.createIcons();
             
-            // Solo reinicia al 0 si es el inicio del lote (esto evita parpadeos al continuar la transferencia)
             if (window.batchCurrentIndex === 1) {
                 updateTransferProgress(0, size);
             }
@@ -1111,7 +1114,6 @@
         }
 
         function processIncomingFile() {
-            // Guarda el archivo individual que acaba de llegar (incluso si la barra total no ha llegado al 100%)
             playBeep('receive');
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
             const url = URL.createObjectURL(blob);
@@ -1140,9 +1142,9 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
-            document.getElementById('btn-transfer-cancel').classList.add('hidden');
+            // Se quitó la referencia al elemento inexistente aquí también
             document.getElementById('btn-transfer-close').classList.remove('hidden');
-            renderFileList(); // La lista ahora está vacía
+            renderFileList(); 
         }
 
         function finishReceivingBatch() {
@@ -1151,7 +1153,7 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
-            document.getElementById('btn-transfer-cancel').classList.add('hidden');
+            // Se quitó la referencia al elemento inexistente aquí también
             document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
 
@@ -1194,7 +1196,6 @@
         function appendChatMessage(text, origin) {
             const container = document.getElementById('chat-messages');
             
-            // Quitar el cartel de "Conexión segura" si es el primer mensaje
             const emptyState = container.querySelector('.mt-10');
             if (emptyState) emptyState.remove();
 
@@ -1265,7 +1266,7 @@
             circle.classList.remove('text-green-500', 'text-red-500');
             circle.classList.add('text-primary');
             text.classList.remove('text-green-500', 'text-red-500');
-            text.classList.add('text-primary');
+            text.classList.add('text-green-500');
             
             circle.style.strokeDashoffset = '0';
             text.innerText = codeTimeLeft + 's';
