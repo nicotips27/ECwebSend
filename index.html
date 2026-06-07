@@ -199,20 +199,21 @@
     <!-- MAIN VIEWS -->
     <main class="flex-1 overflow-hidden relative">
         
-        <!-- ================= RECIBIR ================= -->
-        <section id="view-receive" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300">
-            <div class="flex flex-col items-center justify-center pt-4 mb-8">
-                <div class="relative w-48 h-48 flex items-center justify-center">
+        <!-- ================= INICIAR (CONEXIÓN) ================= -->
+        <section id="view-start" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300">
+            <div class="flex flex-col items-center justify-center pt-2 mb-6">
+                <!-- Radar & Phone Icon -->
+                <div class="relative w-32 h-32 flex items-center justify-center mb-6">
                     <div class="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]"></div>
                     <div class="absolute inset-4 border border-primary/30 rounded-full"></div>
                     <div class="absolute inset-0 radar-cone animate-radar-spin opacity-50"></div>
-                    
-                    <div class="relative z-10 glass-panel w-20 h-20 rounded-full border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)]">
-                        <i data-lucide="smartphone" class="w-8 h-8 text-primary"></i>
+                    <div class="relative z-10 glass-panel w-16 h-16 rounded-full border-2 border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(14,165,233,0.3)]">
+                        <i data-lucide="zap" class="w-6 h-6 text-primary"></i>
                     </div>
                 </div>
 
-                <div class="mt-8 text-center glass-panel p-5 rounded-3xl w-full max-w-sm">
+                <!-- Mi Código -->
+                <div class="text-center glass-panel p-5 rounded-3xl w-full max-w-sm mb-6 border border-white/10 shadow-lg">
                     <div class="flex justify-between items-center mb-2 px-1">
                         <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Código</p>
                         <div class="flex items-center gap-1.5">
@@ -234,22 +235,48 @@
                             <i data-lucide="copy" class="w-5 h-5"></i>
                         </button>
                     </div>
-                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el QR superior. Se renueva automáticamente para mayor seguridad.</p>
+                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el QR para que otro dispositivo se conecte a ti.</p>
+                </div>
+
+                <!-- Conectar a otro -->
+                <div class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg relative overflow-hidden border border-white/10">
+                    <label class="flex justify-between items-center text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
+                        <span>Conectarse a dispositivo</span>
+                        <span id="code-counter" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-mono transition-colors">0/6</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" inputmode="numeric" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
+                        <button onclick="window.startQRScanner()" id="btn-scan" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 rounded-xl transition-all shadow-[0_0_10px_rgba(255,255,255,0.05)] active:scale-95 flex items-center justify-center shrink-0 border border-white/5" title="Escanear QR con la cámara">
+                            <i data-lucide="scan" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="window.connectToPeer()" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0">
+                            <i data-lucide="link" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div id="connection-status" class="mt-3 text-xs font-medium text-zinc-500 hidden items-center gap-1.5 justify-center">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i>
+                        <span class="text-green-400" id="connection-status-text">Conectado. Listo para transferir.</span>
+                    </div>
                 </div>
             </div>
+        </section>
 
+        <!-- ================= RECIBIR ================= -->
+        <section id="view-receive" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
+            <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Bandeja de Entrada</h2>
             <div class="w-full max-w-sm mx-auto">
                 <div class="flex items-center justify-between mb-3 px-1">
                     <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
-                        <i data-lucide="download-cloud" class="w-4 h-4 text-primary"></i> Recibidos
+                        <i data-lucide="download-cloud" class="w-4 h-4 text-primary"></i> Archivos Recibidos
                     </h3>
                     <span id="badge-received" class="text-[10px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md hidden">0</span>
                 </div>
                 
-                <div class="glass-panel rounded-2xl p-2 min-h-[120px] flex flex-col">
-                    <div id="empty-received" class="flex-1 flex flex-col items-center justify-center py-6 text-zinc-600">
-                        <i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i>
-                        <span class="text-xs font-medium">Bandeja vacía</span>
+                <div class="glass-panel rounded-2xl p-2 min-h-[300px] flex flex-col border border-white/10 shadow-lg">
+                    <div id="empty-received" class="flex-1 flex flex-col items-center justify-center py-10 text-zinc-600">
+                        <i data-lucide="inbox" class="w-12 h-12 mb-3 opacity-50"></i>
+                        <span class="text-sm font-medium">Bandeja vacía</span>
+                        <p class="text-xs text-zinc-500 mt-2 text-center max-w-[200px]">Los archivos que te envíen aparecerán aquí listos para descargar.</p>
                     </div>
                     <ul id="list-received" class="space-y-2 empty:hidden"></ul>
                 </div>
@@ -260,46 +287,22 @@
         <section id="view-send" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
 
-            <div class="glass-panel rounded-3xl p-5 mb-6 shadow-lg">
-                <label class="flex justify-between items-center text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
-                    <span>Código a Conectar</span>
-                    <span id="code-counter" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-mono transition-colors">0/6</span>
-                </label>
-                <div class="flex gap-2">
-                    <input type="text" inputmode="numeric" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
-                    
-                    <!-- Botón para escanear QR -->
-                    <button onclick="window.startQRScanner()" id="btn-scan" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 rounded-xl transition-all shadow-[0_0_10px_rgba(255,255,255,0.05)] active:scale-95 flex items-center justify-center shrink-0 border border-white/5" title="Escanear QR con la cámara">
-                        <i data-lucide="scan" class="w-5 h-5"></i>
-                    </button>
-
-                    <!-- Botón para conectar -->
-                    <button onclick="window.connectToPeer()" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0">
-                        <i data-lucide="link" class="w-5 h-5"></i>
-                    </button>
-                </div>
-                <div id="connection-status" class="mt-3 text-xs font-medium text-zinc-500 hidden items-center gap-1.5 justify-center">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500"></i>
-                    <span class="text-green-400" id="connection-status-text">Conectado. Listo para enviar.</span>
-                </div>
-            </div>
-
-            <div class="glass-panel rounded-3xl p-5 shadow-lg flex flex-col mb-6">
+            <div class="glass-panel rounded-3xl p-5 shadow-lg flex flex-col mb-6 border border-white/10">
                 <div class="flex justify-between items-end mb-4">
-                    <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Archivos</label>
+                    <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Seleccionar Archivos</label>
                     <button onclick="window.clearSelection()" class="text-[10px] text-zinc-500 hover:text-red-400 transition-colors hidden" id="btn-clear-files">Limpiar Todo</button>
                 </div>
                 
                 <input type="file" id="file-input" class="hidden" multiple>
-                <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group min-h-[160px]">
                     <div class="p-3 bg-zinc-800 group-hover:bg-primary/20 rounded-full mb-3 transition-colors">
-                        <i data-lucide="upload-cloud" class="w-6 h-6 text-zinc-400 group-hover:text-primary"></i>
+                        <i data-lucide="upload-cloud" class="w-8 h-8 text-zinc-400 group-hover:text-primary transition-colors"></i>
                     </div>
                     <p class="text-sm font-semibold text-zinc-300">Toca para seleccionar</p>
                     <p class="text-xs text-zinc-500 mt-1">Archivos, fotos o contactos (.vcf)</p>
                 </div>
 
-                <ul id="list-selected" class="mt-4 space-y-2 max-h-40 overflow-y-auto hide-scrollbar"></ul>
+                <ul id="list-selected" class="mt-4 space-y-2 max-h-60 overflow-y-auto hide-scrollbar"></ul>
             </div>
 
             <button onclick="window.sendSelectedFiles()" id="btn-send" class="w-full py-4 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2" disabled>
@@ -400,24 +403,31 @@
     <nav class="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-panel rounded-2xl border border-white/10 overflow-hidden z-20">
         <ul class="flex">
             <li class="flex-1">
-                <button onclick="window.switchView('receive')" id="nav-receive" class="w-full py-3.5 flex flex-col items-center gap-1 text-primary relative">
-                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full transition-opacity" id="indicator-receive"></div>
-                    <i data-lucide="arrow-down-to-line" class="w-5 h-5"></i>
-                    <span class="text-[10px] font-bold tracking-wider">RECIBIR</span>
+                <button onclick="window.switchView('start')" id="nav-start" class="w-full py-3 flex flex-col items-center gap-1 text-primary relative">
+                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full transition-opacity" id="indicator-start"></div>
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                    <span class="text-[9px] font-bold tracking-wider">INICIAR</span>
                 </button>
             </li>
             <li class="flex-1 border-l border-white/5">
-                <button onclick="window.switchView('send')" id="nav-send" class="w-full py-3.5 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+                <button onclick="window.switchView('receive')" id="nav-receive" class="w-full py-3 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+                    <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-receive"></div>
+                    <i data-lucide="download-cloud" class="w-5 h-5"></i>
+                    <span class="text-[9px] font-bold tracking-wider">RECIBIR</span>
+                </button>
+            </li>
+            <li class="flex-1 border-l border-white/5">
+                <button onclick="window.switchView('send')" id="nav-send" class="w-full py-3 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
                     <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-send"></div>
                     <i data-lucide="send" class="w-5 h-5"></i>
-                    <span class="text-[10px] font-bold tracking-wider">ENVIAR</span>
+                    <span class="text-[9px] font-bold tracking-wider">ENVIAR</span>
                 </button>
             </li>
             <li class="flex-1 border-l border-white/5">
-                <button onclick="window.switchView('settings')" id="nav-settings" class="w-full py-3.5 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+                <button onclick="window.switchView('settings')" id="nav-settings" class="w-full py-3 flex flex-col items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors relative">
                     <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-settings"></div>
                     <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span class="text-[10px] font-bold tracking-wider">AJUSTES</span>
+                    <span class="text-[9px] font-bold tracking-wider">AJUSTES</span>
                 </button>
             </li>
         </ul>
@@ -438,13 +448,13 @@
             
             <div class="space-y-3 w-full text-[13px] text-zinc-200 leading-relaxed">
                 <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
-                    <span class="text-primary font-bold">1. El que recibe:</span> Solo tiene que abrir esta página y quedarse en la pestaña <b class="text-white">"RECIBIR"</b>. Ahí verá sus 6 números grandotes (Mi Código).
+                    <span class="text-primary font-bold">1. Conectarse:</span> En la pestaña <b class="text-white">"INICIAR"</b> verás tu código. El otro usuario debe ingresar ese código (o escanear tu QR) para enlazar los dispositivos.
                 </div>
                 <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
-                    <span class="text-primary font-bold">2. El que envía:</span> Va a la pestaña <b class="text-white">"ENVIAR"</b> (abajo al medio) y escribe esos 6 números (o escanea el QR del otro celular).
+                    <span class="text-primary font-bold">2. Enviar:</span> Una vez conectados, ve a la pestaña <b class="text-white">"ENVIAR"</b>, selecciona tus archivos y toca el botón de enviar.
                 </div>
                 <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
-                    <span class="text-primary font-bold">3. ¡Listo!</span> Ya están conectados en privado. Solo selecciona las fotos o documentos que quieras mandar y listo. ¡Así de simple!
+                    <span class="text-primary font-bold">3. Recibir:</span> Si te envían algo, ve a la pestaña <b class="text-white">"RECIBIR"</b> para ver tu bandeja de entrada y descargar.
                 </div>
             </div>
             
@@ -598,7 +608,8 @@
     <script>
         // --- UI BÁSICA Y FUNCIONES EXPORTADAS ---
         window.switchView = function(targetView) {
-            ['receive', 'send', 'settings'].forEach(view => {
+            const views = ['start', 'receive', 'send', 'settings'];
+            views.forEach(view => {
                 const section = document.getElementById(`view-${view}`);
                 const navBtn = document.getElementById(`nav-${view}`);
                 const indicator = document.getElementById(`indicator-${view}`);
@@ -610,8 +621,8 @@
                     navBtn.classList.add('text-primary');
                     indicator.classList.remove('opacity-0');
                 } else {
-                    const targetIndex = ['receive', 'send', 'settings'].indexOf(targetView);
-                    const currIndex = ['receive', 'send', 'settings'].indexOf(view);
+                    const targetIndex = views.indexOf(targetView);
+                    const currIndex = views.indexOf(view);
                     section.classList.remove('translate-x-full', '-translate-x-full');
                     section.classList.add(currIndex < targetIndex ? '-translate-x-full' : 'translate-x-full');
                     navBtn.classList.add('text-zinc-500');
@@ -987,7 +998,7 @@
             const connectCode = urlParams.get('connect');
             if (connectCode && connectCode !== myRawCode) {
                 window.history.replaceState({}, document.title, window.location.pathname);
-                window.switchView('send');
+                window.switchView('start');
                 document.getElementById('target-code').value = connectCode;
                 setTimeout(() => window.connectToPeer(), 800);
             }
