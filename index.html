@@ -258,6 +258,20 @@
                         <span class="text-green-400" id="connection-status-text">Conectado. Listo para transferir.</span>
                     </div>
                 </div>
+
+                <!-- Historial -->
+                <div class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg border border-white/10 mt-6 mb-6">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-4 h-4 text-primary"></i> Historial Reciente
+                        </h3>
+                    </div>
+                    <ul id="list-history" class="space-y-2 max-h-40 overflow-y-auto hide-scrollbar"></ul>
+                    <div id="empty-history" class="py-6 text-center text-zinc-600">
+                        <i data-lucide="history" class="w-8 h-8 mb-2 mx-auto opacity-30"></i>
+                        <p class="text-xs">No hay transferencias recientes</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -362,6 +376,17 @@
                     <div id="toggle-encrip-ui" class="w-11 h-6 bg-zinc-700 rounded-full relative transition-colors duration-300">
                         <div id="toggle-encrip-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0"></div>
                     </div>
+                </div>
+
+                <!-- Ajuste: Borrar Datos -->
+                <div class="glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-red-500/20 bg-red-500/5">
+                    <div>
+                        <p class="font-semibold text-sm text-red-400">Borrar Datos Locales</p>
+                        <p class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">Elimina el historial de transferencias, configuraciones y reinicia la aplicación.</p>
+                    </div>
+                    <button onclick="window.clearAllData(this)" class="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar Todo
+                    </button>
                 </div>
 
                 <!-- Sobre este programa -->
@@ -749,6 +774,84 @@
         if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
         if (typeof appSettings.ecEncripP2P === 'undefined') appSettings.ecEncripP2P = false;
 
+        let transferHistory = JSON.parse(localStorage.getItem('ecsend_history')) || [];
+
+        function renderHistory() {
+            const list = document.getElementById('list-history');
+            const emptyState = document.getElementById('empty-history');
+            if (!list || !emptyState) return;
+            
+            list.innerHTML = '';
+            
+            if (transferHistory.length === 0) {
+                list.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            list.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            transferHistory.forEach(item => {
+                const isReceive = item.type === 'receive';
+                const icon = isReceive ? 'download' : 'upload';
+                const color = isReceive ? 'text-green-400' : 'text-primary';
+                const bg = isReceive ? 'bg-green-500/10' : 'bg-primary/10';
+                const date = new Date(item.date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const sizeMB = (item.size / (1024*1024)).toFixed(2);
+
+                list.innerHTML += `
+                    <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-white/5">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="p-2 ${bg} rounded-lg shrink-0">
+                                <i data-lucide="${icon}" class="w-4 h-4 ${color}"></i>
+                            </div>
+                            <div class="truncate">
+                                <p class="text-[13px] font-medium text-zinc-200 truncate">${item.name}</p>
+                                <p class="text-[10px] text-zinc-500">${isReceive ? 'Recibido' : 'Enviado'} • ${sizeMB} MB</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] text-zinc-500 shrink-0 whitespace-nowrap ml-2">${date}</span>
+                    </li>
+                `;
+            });
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        window.addHistoryItem = function(type, name, size) {
+            transferHistory.unshift({ type, name, size, date: new Date().toISOString() });
+            if (transferHistory.length > 20) transferHistory.pop(); // Guarda los últimos 20 elementos
+            localStorage.setItem('ecsend_history', JSON.stringify(transferHistory));
+            renderHistory();
+        };
+
+        let clearConfirmTimeout = null;
+        window.clearAllData = function(btn) {
+            const btnText = btn.innerText || btn.textContent;
+            if (btnText.includes('¿Estás seguro?')) {
+                localStorage.removeItem('ecsend_settings');
+                localStorage.removeItem('ecsend_history');
+                window.showToast('Datos eliminados. Reiniciando...', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4"></i> ¿Estás seguro? Toca de nuevo`;
+                if (window.lucide) window.lucide.createIcons();
+                btn.classList.replace('bg-red-500/10', 'bg-red-500');
+                btn.classList.replace('text-red-400', 'text-white');
+                
+                clearTimeout(clearConfirmTimeout);
+                clearConfirmTimeout = setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.replace('bg-red-500', 'bg-red-500/10');
+                    btn.classList.replace('text-white', 'text-red-400');
+                    if (window.lucide) window.lucide.createIcons();
+                }, 3000);
+            }
+        };
+
+        setTimeout(renderHistory, 500);
+
         // Generador de Sonidos Bip Mejorado (Envolventes suaves y armónicos)
         let audioCtx = null;
 
@@ -1086,7 +1189,8 @@
                             }
                         } else if (msg.type === 'eof-ack') {
                             if (selectedFiles.length > 0) {
-                                selectedFiles.shift(); 
+                                const sentFile = selectedFiles.shift(); 
+                                window.addHistoryItem('send', sentFile.name, sentFile.size);
                                 renderFileList();
                             }
                             
@@ -1343,6 +1447,8 @@
             if (window.lucide) window.lucide.createIcons();
 
             const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+            
+            window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
 
         function finishSendingBatch() {
