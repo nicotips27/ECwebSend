@@ -138,19 +138,51 @@
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none"></div>
 
     <!-- HEADER -->
-    <header class="glass-panel px-5 py-4 flex justify-between items-center z-10 shrink-0 border-b border-white/5">
-        <a href="https://nicotips27.github.io/Estalingrado-corp-Buscador-/" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
-                <img src="https://64.media.tumblr.com/6f33c857b884c03137bf197c80459ae0/3976e3c8c7065a5c-90/s540x810/81339e8f5163072554c85570781953c6babc6acf.pnj" class="w-full h-full object-cover opacity-80 mix-blend-screen" alt="Logo mini">
-            </div>
-            <div>
-                <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECSend <span class="text-[10px] font-bold text-yellow-400 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-md ml-1 tracking-widest shadow-[0_0_10px_rgba(250,204,21,0.2)]">PRO</span></h1>
-                <div class="flex items-center gap-1.5 mt-1">
-                    <span id="status-dot" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
-                    <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Iniciando Servidor...</span>
+    <header class="glass-panel px-5 py-4 flex justify-between items-center z-10 shrink-0 border-b border-white/5 relative">
+        
+        <!-- CONTENEDOR LOGO Y MENÚ DESPLEGABLE -->
+        <div class="relative z-[100]">
+            <button onclick="window.toggleMainMenu(event)" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity text-left outline-none">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden shrink-0">
+                    <img src="https://64.media.tumblr.com/6f33c857b884c03137bf197c80459ae0/3976e3c8c7065a5c-90/s540x810/81339e8f5163072554c85570781953c6babc6acf.pnj" class="w-full h-full object-cover opacity-80 mix-blend-screen" alt="Logo mini">
+                </div>
+                <div>
+                    <div class="flex items-center gap-1">
+                        <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECSend <span class="text-[10px] font-bold text-yellow-400 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-md ml-1 tracking-widest shadow-[0_0_10px_rgba(250,204,21,0.2)]">PRO</span></h1>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 ml-0.5"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span id="status-dot" class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
+                        <span id="status-text" class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Iniciando Servidor...</span>
+                    </div>
+                </div>
+            </button>
+
+            <!-- DROPDOWN MENU PRINCIPAL -->
+            <div id="main-menu-dropdown" class="absolute top-full left-0 mt-4 w-72 max-w-[85vw] glass-panel bg-zinc-900/95 rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden animate-slide-up origin-top-left">
+                <div class="p-2 space-y-1">
+                    <a href="https://nicotips27.github.io/Estalingrado-corp-Buscador-/" target="_blank" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-zinc-800/80 text-sm font-medium text-zinc-200 hover:text-white transition-colors">
+                        <div class="p-1.5 bg-primary/10 rounded-lg"><i data-lucide="search" class="w-4 h-4 text-primary"></i></div>
+                        Ir al Buscador
+                    </a>
+                    <a href="https://nicotips27.github.io/ec-download/" target="_blank" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-zinc-800/80 text-sm font-medium text-zinc-200 hover:text-white transition-colors">
+                        <div class="p-1.5 bg-primary/10 rounded-lg"><i data-lucide="download-cloud" class="w-4 h-4 text-primary"></i></div>
+                        Ir a ECDownload
+                    </a>
+                    <a href="https://nicotips27.github.io/ec-download/" target="_blank" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-zinc-800/80 text-sm font-medium text-zinc-200 hover:text-white transition-colors">
+                        <div class="p-1.5 bg-secondary/10 rounded-lg"><i data-lucide="activity" class="w-4 h-4 text-secondary"></i></div>
+                        Tráfico en tiempo real (Big-Data)
+                    </a>
+                    <div class="h-px w-full bg-white/10 my-2"></div>
+                    <button onclick="window.showToast('La web del producto estará disponible Próximamente', 'info'); window.toggleMainMenu();" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-zinc-800/50 text-sm font-medium text-zinc-500 transition-colors text-left cursor-default">
+                        <div class="p-1.5 bg-zinc-800 rounded-lg shrink-0"><i data-lucide="info" class="w-4 h-4 text-zinc-400"></i></div>
+                        <span class="truncate">Saber más</span>
+                        <span class="ml-auto shrink-0 text-[8px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-widest">Próximamente</span>
+                    </button>
                 </div>
             </div>
-        </a>
+        </div>
+
         <div class="flex items-center gap-2">
             <button onclick="window.toggleHelpModal()" title="¿Cómo funciona?" class="p-2.5 bg-zinc-800/50 hover:bg-zinc-800 text-primary rounded-xl transition-all border border-white/5 active:scale-95 shadow-[0_0_10px_rgba(14,165,233,0.2)]">
                 <i data-lucide="help-circle" class="w-5 h-5"></i>
@@ -621,6 +653,28 @@
                 document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
             }, 500);
         };
+
+        // --- SISTEMA DEL MENÚ PRINCIPAL ---
+        window.toggleMainMenu = function(event) {
+            if(event) event.stopPropagation();
+            const menu = document.getElementById('main-menu-dropdown');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
+        };
+
+        // Cerrar menú al hacer clic fuera de él
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('main-menu-dropdown');
+            if (menu && !menu.classList.contains('hidden') && !menu.contains(event.target)) {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
+        });
 
         // --- LECTOR DE CÓDIGOS QR MEDIANTE LA CÁMARA ---
         let html5QrCode = null;
