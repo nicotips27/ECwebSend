@@ -1087,7 +1087,11 @@
                 });
 
                 peer.on('error', (err) => {
-                    if (err.type === 'peer-unavailable') window.showToast('Dispositivo no encontrado.', 'error');
+                    if (err.type === 'peer-unavailable') {
+                        window.showToast('Dispositivo no encontrado. Verifica el código o recarga la página.', 'error');
+                    } else {
+                        window.showToast('Error de red. Por favor, recarga la página.', 'error');
+                    }
                     resetConnectionUI();
                 });
             } catch (e) {
@@ -1118,6 +1122,12 @@
             if (window.lucide) window.lucide.createIcons();
 
             const conn = peer.connect(PREFIX + input, { reliable: true });
+            
+            conn.on('error', (err) => {
+                window.showToast('Fallo al enlazar. Por favor, recarga la página.', 'error');
+                resetConnectionUI();
+            });
+
             conn.on('open', () => {
                 setupConnection(conn);
                 window.showToast('¡Enlazado exitosamente!', 'success');
@@ -1133,6 +1143,14 @@
             activeConnection = conn;
             playBeep('connect');
             stopCodeTimer();
+
+            // Cerrar modales de QR automáticamente al enlazarse exitosamente
+            document.getElementById('modal-qr').classList.add('hidden');
+            if (html5QrCode && html5QrCode.isScanning) {
+                window.stopQRScanner();
+            } else {
+                document.getElementById('modal-scanner').classList.add('hidden');
+            }
 
             // Detección avanzada de caídas de red (WebRTC ICE State)
             if (conn.peerConnection) {
