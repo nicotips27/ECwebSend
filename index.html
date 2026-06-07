@@ -318,6 +318,17 @@
                     </div>
                 </div>
 
+                <!-- Ajuste: ECEncripP2P -->
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-encrip-btn">
+                    <div>
+                        <p class="font-semibold text-sm text-zinc-200">ECEncripP2P</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Encriptar túnel de la Intra-net</p>
+                    </div>
+                    <div id="toggle-encrip-ui" class="w-11 h-6 bg-zinc-700 rounded-full relative transition-colors duration-300">
+                        <div id="toggle-encrip-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0"></div>
+                    </div>
+                </div>
+
                 <!-- Sobre este programa -->
                 <div class="glass-panel rounded-3xl p-5 flex flex-col items-center text-center mt-6 border-t border-white/10 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
@@ -667,9 +678,11 @@
             username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
             network: 'global', 
             sounds: true,
-            dynamicBg: true
+            dynamicBg: true,
+            ecEncripP2P: false
         };
         if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
+        if (typeof appSettings.ecEncripP2P === 'undefined') appSettings.ecEncripP2P = false;
 
         // Generador de Sonidos Bip Mejorado (Envolventes suaves y armónicos)
         let audioCtx = null;
@@ -767,6 +780,18 @@
                     bgCircle.classList.remove('translate-x-5');
                 }
             }
+
+            const encripUi = document.getElementById('toggle-encrip-ui');
+            const encripCircle = document.getElementById('toggle-encrip-circle');
+            if (encripUi && encripCircle) {
+                if (appSettings.ecEncripP2P) {
+                    encripUi.classList.replace('bg-zinc-700', 'bg-primary');
+                    encripCircle.classList.add('translate-x-5');
+                } else {
+                    encripUi.classList.replace('bg-primary', 'bg-zinc-700');
+                    encripCircle.classList.remove('translate-x-5');
+                }
+            }
         }
         updateUIStates();
 
@@ -794,6 +819,20 @@
                 appSettings.dynamicBg = !appSettings.dynamicBg;
                 localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
                 updateUIStates();
+            });
+        }
+
+        const toggleEncripBtn = document.getElementById('toggle-encrip-btn');
+        if (toggleEncripBtn) {
+            toggleEncripBtn.addEventListener('click', () => {
+                appSettings.ecEncripP2P = !appSettings.ecEncripP2P;
+                localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
+                updateUIStates();
+                if (appSettings.ecEncripP2P) {
+                    window.showToast('ECEncripP2P Activado', 'success');
+                } else {
+                    window.showToast('ECEncripP2P Desactivado', 'info');
+                }
             });
         }
 
@@ -1197,8 +1236,6 @@
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
             
-            // EL BUG ESTABA AQUÍ: Eliminado el intento de esconder un "btn-transfer-cancel" que no existe
-            
             document.getElementById('transfer-filename').innerText = filename;
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
             document.getElementById('transfer-icon').setAttribute('data-lucide', mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle');
@@ -1249,7 +1286,6 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
-            // Se quitó la referencia al elemento inexistente aquí también
             document.getElementById('btn-transfer-close').classList.remove('hidden');
             renderFileList(); 
         }
@@ -1260,7 +1296,6 @@
             document.getElementById('transfer-icon').setAttribute('data-lucide', 'check-circle');
             if (window.lucide) window.lucide.createIcons();
             document.getElementById('transfer-progress-bar').style.width = '100%';
-            // Se quitó la referencia al elemento inexistente aquí también
             document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
 
