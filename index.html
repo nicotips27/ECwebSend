@@ -1093,7 +1093,8 @@
                 peer = new Peer(myPeerId, { debug: 2, config: { 'iceServers': iceServers } });
 
                 peer.on('open', (id) => {
-                    document.getElementById('status-dot').classList.replace('bg-yellow-500', 'bg-green-500');
+                    document.getElementById('status-dot').classList.remove('bg-yellow-500', 'bg-red-500');
+                    document.getElementById('status-dot').classList.add('bg-green-500');
                     document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
                     checkURLParams();
                 });
@@ -1110,9 +1111,19 @@
                     if (conn.open) handleConnection();
                 });
 
+                // NUEVO: Reconectar automáticamente si el celular duerme la pestaña por ir a WhatsApp
+                peer.on('disconnected', () => {
+                    document.getElementById('status-dot').classList.remove('bg-green-500');
+                    document.getElementById('status-dot').classList.add('bg-yellow-500');
+                    document.getElementById('status-text').innerText = "Reconectando...";
+                    if (!peer.destroyed) {
+                        peer.reconnect();
+                    }
+                });
+
                 peer.on('error', (err) => {
                     if (err.type === 'peer-unavailable') {
-                        window.showToast('Dispositivo no encontrado. Verifica el código o recarga la página.', 'error');
+                        window.showToast('Dispositivo no encontrado. Pídele a tu amigo que mantenga la pantalla encendida.', 'error');
                     } else {
                         window.showToast('Error de red. Por favor, recarga la página.', 'error');
                     }
@@ -1123,6 +1134,16 @@
             }
         }
         setTimeout(initPeer, 800);
+
+        // NUEVO: Detección cuando el usuario vuelve de WhatsApp a la pestaña
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (peer && peer.disconnected && !peer.destroyed) {
+                    document.getElementById('status-text').innerText = "Despertando...";
+                    peer.reconnect();
+                }
+            }
+        });
 
         function checkURLParams() {
             const urlParams = new URLSearchParams(window.location.search);
