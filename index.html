@@ -231,11 +231,16 @@
                     </div>
                     <div class="flex items-center justify-center gap-3">
                         <div id="my-code" class="text-4xl font-black tracking-[0.2em] text-white font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">------</div>
-                        <button onclick="window.copyMyCode()" class="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 transition-colors">
-                            <i data-lucide="copy" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 mt-4">
+                        <button onclick="window.copyMyCode()" class="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-zinc-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border border-white/5 active:scale-95">
+                            <i data-lucide="copy" class="w-4 h-4"></i> Copiar Código
+                        </button>
+                        <button onclick="window.shareLink()" class="flex-1 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors active:scale-95">
+                            <i data-lucide="link" class="w-4 h-4"></i> Enlace Directo
                         </button>
                     </div>
-                    <p class="text-[11px] text-zinc-500 mt-3 leading-relaxed">Comparte este código o el QR para que otro dispositivo se conecte a ti.</p>
+                    <p class="text-[11px] text-zinc-500 mt-4 leading-relaxed">Comparte este código, enlace o el QR para que otro dispositivo se conecte a ti.</p>
                 </div>
 
                 <!-- Conectar a otro -->
@@ -1079,6 +1084,26 @@
                 ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
                 window.showToast('Código copiado', 'success');
             });
+        };
+
+        window.shareLink = () => {
+            const link = window.location.href.split('?')[0] + '?connect=' + myRawCode;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ECSend Pro - Conexión Segura',
+                    text: '¡Conéctate conmigo en ECSend Pro para transferir archivos!',
+                    url: link
+                }).catch(err => {
+                    console.log('Intercambio cancelado o no soportado.', err);
+                });
+            } else {
+                navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado al portapapeles', 'success'))
+                .catch(() => {
+                    const ta = document.createElement("textarea"); ta.value = link; document.body.appendChild(ta);
+                    ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                    window.showToast('Enlace copiado al portapapeles', 'success');
+                });
+            }
         };
 
         // --- INICIAR PEERJS ---
