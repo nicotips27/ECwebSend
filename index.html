@@ -39,9 +39,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- JSZip: Librería para comprimir multiples archivos en un solo ZIP para evitar spam de descargas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    
     <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
@@ -291,16 +288,18 @@
                     <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
                         <i data-lucide="download-cloud" class="w-4 h-4 text-primary"></i> Archivos Recibidos
                     </h3>
-                    <span id="badge-received" class="text-[10px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-md hidden">0</span>
+                    <!-- Badge indicador de pendientes -->
+                    <span id="badge-received" class="text-[10px] bg-primary text-white font-bold px-2 py-0.5 rounded-full hidden shadow-[0_0_10px_rgba(14,165,233,0.5)] animate-bounce">0</span>
                 </div>
                 
-                <div class="glass-panel rounded-2xl p-2 min-h-[300px] flex flex-col border border-white/10 shadow-lg">
+                <div class="glass-panel rounded-2xl p-2 min-h-[300px] flex flex-col border border-white/10 shadow-lg relative">
                     <div id="empty-received" class="flex-1 flex flex-col items-center justify-center py-10 text-zinc-600">
                         <i data-lucide="inbox" class="w-12 h-12 mb-3 opacity-50"></i>
                         <span class="text-sm font-medium">Bandeja vacía</span>
-                        <p class="text-xs text-zinc-500 mt-2 text-center max-w-[200px]">Los archivos que te envíen aparecerán aquí listos para descargar.</p>
+                        <p class="text-xs text-zinc-500 mt-2 text-center max-w-[200px]">Los archivos que te envíen aparecerán aquí listos para descargar o previsualizar.</p>
                     </div>
-                    <ul id="list-received" class="space-y-2 empty:hidden"></ul>
+                    <!-- Lista de archivos recibidos -->
+                    <ul id="list-received" class="space-y-2.5 p-2 empty:hidden"></ul>
                 </div>
             </div>
         </section>
@@ -309,7 +308,7 @@
         <section id="view-send" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
 
-            <!-- Botón Enviar Principal Movido Arriba -->
+            <!-- Botón Enviar Principal -->
             <button onclick="window.sendSelectedFiles()" id="btn-send" class="w-full py-4 mb-6 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed" disabled>
                 <i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos
             </button>
@@ -630,6 +629,24 @@
         </div>
     </div>
 
+    <!-- MODAL VISOR DE MULTIMEDIA (PRO LIGHTBOX PARA IPHONE) -->
+    <div id="modal-lightbox" class="fixed inset-0 bg-black/95 backdrop-blur-lg z-[120] hidden flex-col items-center justify-center p-4 transition-opacity" onclick="window.closeLightbox()">
+        <button onclick="window.closeLightbox()" class="absolute top-4 right-4 text-zinc-400 hover:text-white p-2.5 bg-zinc-900/85 rounded-full border border-white/10 z-[130]">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <div class="w-full max-w-lg h-full max-h-[80vh] flex items-center justify-center p-4" onclick="event.stopPropagation()">
+            <!-- Contenedor dinámico del elemento -->
+            <div id="lightbox-content" class="w-full h-full flex items-center justify-center select-text"></div>
+        </div>
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center text-center gap-2" onclick="event.stopPropagation()">
+            <p id="lightbox-filename" class="text-xs font-semibold text-zinc-300 truncate max-w-xs"></p>
+            <a id="lightbox-download" href="#" download class="px-5 py-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Guardar Archivo
+            </a>
+            <p class="text-[10px] text-zinc-500 max-w-[260px] leading-snug">Tip de iOS: Mantén presionado en la imagen para "Guardar en Fotos" directamente.</p>
+        </div>
+    </div>
+
     <!-- BOTON FLOTANTE CHAT Y MODAL REDISEÑADO "PRO" -->
     <button id="btn-floating-chat" onclick="window.toggleChat()" class="hidden fixed bottom-28 right-5 z-[50] w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] flex items-center justify-center transition-all active:scale-95 border-2 border-dark">
         <i data-lucide="message-circle" class="w-6 h-6"></i>
@@ -689,8 +706,19 @@
 
     <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
     <script>
-        // --- UI BÁSICA Y FUNCIONES EXPORTADAS ---
+        // --- CONTROL DE VISTAS Y NOTIFICACIONES DE BANDEJA ---
+        window.currentActiveView = 'start';
+        window.unreadReceivedCount = 0;
+
         window.switchView = function(targetView) {
+            window.currentActiveView = targetView;
+            
+            // Si el usuario entra a recibir, reseteamos el badge
+            if (targetView === 'receive') {
+                window.unreadReceivedCount = 0;
+                window.updateReceiveBadge();
+            }
+
             const views = ['start', 'receive', 'send', 'settings'];
             views.forEach(view => {
                 const section = document.getElementById(`view-${view}`);
@@ -713,6 +741,18 @@
                     indicator.classList.add('opacity-0');
                 }
             });
+        };
+
+        window.updateReceiveBadge = () => {
+            const badge = document.getElementById('badge-received');
+            if (badge) {
+                if (window.unreadReceivedCount > 0) {
+                    badge.innerText = window.unreadReceivedCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
         };
 
         window.showToast = function(message, type = 'info') {
@@ -746,6 +786,43 @@
                 document.getElementById('transfer-icon-container').className = "w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce";
                 document.getElementById('transfer-progress-bar').className = "bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(14,165,233,0.5)]";
             }, 500);
+        };
+
+        // --- SISTEMA DEL VISOR DE MULTIMEDIA (PRO LIGHTBOX) ---
+        window.openLightbox = (url, name, mime) => {
+            const contentContainer = document.getElementById('lightbox-content');
+            const nameEl = document.getElementById('lightbox-filename');
+            const downloadBtn = document.getElementById('lightbox-download');
+            
+            contentContainer.innerHTML = '';
+            nameEl.innerText = name;
+            downloadBtn.href = url;
+            downloadBtn.download = name;
+
+            if (mime.startsWith('image/')) {
+                contentContainer.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl select-all" alt="${name}">`;
+            } else if (mime.startsWith('video/')) {
+                contentContainer.innerHTML = `<video src="${url}" controls autoplay class="max-w-full max-h-full rounded-lg shadow-2xl"></video>`;
+            } else {
+                contentContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 bg-zinc-900/90 rounded-3xl border border-white/10 text-center max-w-xs">
+                        <i data-lucide="file-text" class="w-16 h-16 text-primary mb-4"></i>
+                        <p class="text-sm font-semibold text-white truncate w-full mb-1">${name}</p>
+                        <p class="text-[11px] text-zinc-500 mb-4">Formato no compatible con vista previa</p>
+                    </div>`;
+            }
+
+            document.getElementById('modal-lightbox').classList.remove('hidden');
+            document.getElementById('modal-lightbox').classList.add('flex');
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.closeLightbox = () => {
+            const contentContainer = document.getElementById('lightbox-content');
+            // Detener videos reproduciéndose
+            contentContainer.innerHTML = '';
+            document.getElementById('modal-lightbox').classList.add('hidden');
+            document.getElementById('modal-lightbox').classList.remove('flex');
         };
 
         // --- SISTEMA DEL MENÚ PRINCIPAL ---
@@ -1062,7 +1139,7 @@
             });
         }
 
-        // --- VARIABLES GLOBALES DE WEBRTC Y ZIP ---
+        // --- VARIABLES GLOBALES DE WEBRTC ---
         if (window.lucide) window.lucide.createIcons();
         const PREFIX = "ecsend-";
         let myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -1078,10 +1155,6 @@
         window.batchBytesSent = 0;
         window.batchCurrentIndex = 1;
         window.batchBytesReceived = 0;
-
-        // Variables de JSZip (Protección contra OS Crash)
-        window.batchZip = null;
-        window.batchZipName = '';
 
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
@@ -1237,7 +1310,7 @@
             });
         };
 
-        // --- SISTEMA WEBRTC CORE CORREGIDO Y SEGURO ---
+        // --- SISTEMA WEBRTC CORE CORREGIDO Y SEGURO (MÓVIL FRIENDLY) ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
@@ -1291,22 +1364,22 @@
                             return;
                         }
                         
-                        // PARCHE DE SEGURIDAD 1: Recibir petición de transferencia
+                        // Recibir petición de transferencia (Consentimiento)
                         if (msg.type === 'request-transfer') {
                             const sizeMB = (msg.batchTotalSize / (1024*1024)).toFixed(2);
                             document.getElementById('request-desc').innerText = `Desea enviarte ${msg.batchTotalFiles} archivo(s) con un peso de ${sizeMB} MB.`;
                             const modalReq = document.getElementById('modal-request');
                             modalReq.classList.remove('hidden');
                             modalReq.classList.add('flex');
-                            playBeep('chat'); // Alertar petición
+                            playBeep('chat'); // Alertar petición con tono
                             return;
                         }
                         
-                        // PARCHE DE SEGURIDAD 1: Recibir respuesta de transferencia
+                        // Recibir respuesta de transferencia
                         if (msg.type === 'response-transfer') {
                             if (msg.accept) {
                                 document.getElementById('transfer-title').innerText = 'Enviando...';
-                                sendNextFile(); // Empezar bucle de envío si aceptó
+                                sendNextFile(); // Empezar envío
                             } else {
                                 window.closeTransferModal();
                                 window.showToast('Transferencia rechazada por el destinatario.', 'error');
@@ -1319,16 +1392,6 @@
                             
                             if (msg.batchCurrentIndex === 1) {
                                 window.batchBytesReceived = 0;
-                                
-                                // PARCHE DE SEGURIDAD 2: Inicializar ZIP si son múltiples archivos
-                                if (msg.batchTotalFiles > 1 && typeof JSZip !== 'undefined') {
-                                    window.batchZip = new JSZip();
-                                    const dateStr = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-                                    window.batchZipName = `ECSend_Transferencia_${dateStr}.zip`;
-                                } else {
-                                    window.batchZip = null;
-                                }
-
                                 openTransferModal(
                                     msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
                                     msg.batchTotalSize, 
@@ -1385,7 +1448,6 @@
             });
         }
         
-        // RESPONDER A PETICIÓN DE TRANSFERENCIA
         window.respondTransferRequest = (accept) => {
             document.getElementById('modal-request').classList.add('hidden');
             document.getElementById('modal-request').classList.remove('flex');
@@ -1533,7 +1595,6 @@
             if (window.lucide) window.lucide.createIcons();
         }
 
-        // PARCHE DE SEGURIDAD 1: Solicitar transferencia primero en lugar de enviar directamente
         window.sendSelectedFiles = () => {
             if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             
@@ -1632,38 +1693,79 @@
             document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
         }
 
+        // --- MANEJO INTELIGENTE DE ARCHIVOS EN MÓVIL (SOPORTE IMÁGENES/VIDEOS) ---
         function processIncomingFile() {
             playBeep('receive');
+            
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
             const url = URL.createObjectURL(blob);
             
+            const isImage = incomingFileInfo.mime.startsWith('image/');
+            const isVideo = incomingFileInfo.mime.startsWith('video/');
             const isContact = incomingFileInfo.name.toLowerCase().endsWith('.vcf') || incomingFileInfo.mime.includes('vcard');
-            const icon = isContact ? 'users' : 'check';
+            
+            const icon = isContact ? 'users' : 'file-text';
             const iconColorClass = isContact ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400';
 
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
             
+            // Incrementar notificaciones si no estamos viendo recibir
+            if (window.currentActiveView !== 'receive') {
+                window.unreadReceivedCount++;
+                window.updateReceiveBadge();
+            }
+
+            // Crear la miniatura / preview visual del archivo si es multimedia
+            let mediaPreviewHtml = `<div class="p-2.5 ${iconColorClass} rounded-xl shrink-0 flex items-center justify-center w-12 h-12"><i data-lucide="${icon}"></i></div>`;
+            if (isImage) {
+                mediaPreviewHtml = `
+                    <div onclick="window.openLightbox('${url}', '${incomingFileInfo.name}', '${incomingFileInfo.mime}')" class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 cursor-pointer hover:scale-105 active:scale-95 transition-all">
+                        <img src="${url}" class="w-full h-full object-cover select-none pointer-events-none" alt="Vista previa">
+                    </div>`;
+            } else if (isVideo) {
+                mediaPreviewHtml = `
+                    <div onclick="window.openLightbox('${url}', '${incomingFileInfo.name}', '${incomingFileInfo.mime}')" class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-zinc-900 relative cursor-pointer hover:scale-105 active:scale-95 transition-all">
+                        <video src="${url}" class="w-full h-full object-cover select-none pointer-events-none"></video>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <i data-lucide="play" class="w-3.5 h-3.5 text-white"></i>
+                        </div>
+                    </div>`;
+            }
+
             const newItemHtml = `
-                <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
+                <li class="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 animate-slide-up hover:bg-zinc-800/50 transition-colors">
                     <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="p-2 ${iconColorClass} rounded-lg shrink-0"><i data-lucide="${icon}" class="w-4 h-4"></i></div>
+                        ${mediaPreviewHtml}
                         <div class="truncate">
                             <p class="text-sm font-semibold text-zinc-200 truncate">${incomingFileInfo.name}</p>
-                            <p class="text-[10px] text-zinc-500">${(incomingFileInfo.size / (1024*1024)).toFixed(2)} MB</p>
+                            <p class="text-[10px] text-zinc-500 font-medium">${(incomingFileInfo.size / (1024*1024)).toFixed(2)} MB</p>
                         </div>
                     </div>
-                    <a href="${url}" download="${incomingFileInfo.name}" class="p-2 text-primary bg-primary/10 rounded-lg"><i data-lucide="download" class="w-4 h-4"></i></a>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <!-- Previsualizar si es multimedia -->
+                        ${(isImage || isVideo) ? `
+                        <button onclick="window.openLightbox('${url}', '${incomingFileInfo.name}', '${incomingFileInfo.mime}')" class="p-2.5 text-zinc-400 hover:text-white bg-zinc-800 rounded-xl transition-all border border-white/5" title="Ver Pantalla Completa">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>` : ''}
+                        
+                        <!-- Botón de guardado/descarga normal -->
+                        <a href="${url}" download="${incomingFileInfo.name}" class="p-2.5 text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all border border-primary/10" title="Descargar">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </a>
+                    </div>
                 </li>`;
             
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
-            // PARCHE DE SEGURIDAD 2: Empaquetar en ZIP si son varios archivos (No forzar descargas)
-            if (window.batchZip) {
-                window.batchZip.file(incomingFileInfo.name, blob);
-            } else {
-                const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+            // SÓLO auto-descargamos si el lote es de un solo archivo.
+            // Para múltiples archivos, los dejamos listos en bandeja para no colapsar el iPhone.
+            if (incomingFileInfo.batchTotalFiles === 1) {
+                const a = document.createElement('a'); 
+                a.href = url; 
+                a.download = incomingFileInfo.name; 
+                a.click();
             }
             
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
@@ -1683,41 +1785,20 @@
         }
 
         function finishReceivingBatch() {
-            // PARCHE DE SEGURIDAD 2: Finalizar ZIP y descargarlo de manera segura
-            if (window.batchZip) {
-                document.getElementById('transfer-title').innerText = 'Comprimiendo ZIP...';
-                document.getElementById('transfer-filename').innerText = 'Preparando paquete de descarga segura...';
-                
-                window.batchZip.generateAsync({ type: 'blob' }).then(function(content) {
-                    const url = URL.createObjectURL(content);
-                    const a = document.createElement('a'); 
-                    a.href = url; 
-                    a.download = window.batchZipName; 
-                    a.click();
-                    
-                    document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
-                    document.getElementById('transfer-filename').innerText = window.batchZipName;
-                    
-                    const iconContainer = document.getElementById('transfer-icon-container');
-                    iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
-                    if (window.lucide) window.lucide.createIcons();
-                    
-                    document.getElementById('transfer-progress-bar').style.width = '100%';
-                    document.getElementById('btn-transfer-close').classList.remove('hidden');
-                    
-                    window.batchZip = null; // Limpiar memoria
-                });
+            document.getElementById('transfer-title').innerText = '¡Recibido!';
+            
+            if (incomingFileInfo.batchTotalFiles > 1) {
+                document.getElementById('transfer-filename').innerText = `Lote de ${incomingFileInfo.batchTotalFiles} archivos listo en tu Bandeja.`;
             } else {
-                document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
-                document.getElementById('transfer-filename').innerText = 'Archivo recibido';
-                
-                const iconContainer = document.getElementById('transfer-icon-container');
-                iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
-                if (window.lucide) window.lucide.createIcons();
-                
-                document.getElementById('transfer-progress-bar').style.width = '100%';
-                document.getElementById('btn-transfer-close').classList.remove('hidden');
+                document.getElementById('transfer-filename').innerText = 'Archivo guardado correctamente.';
             }
+            
+            const iconContainer = document.getElementById('transfer-icon-container');
+            iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
+            if (window.lucide) window.lucide.createIcons();
+            
+            document.getElementById('transfer-progress-bar').style.width = '100%';
+            document.getElementById('btn-transfer-close').classList.remove('hidden');
         }
 
         // --- SISTEMA DE CHAT P2P ---
