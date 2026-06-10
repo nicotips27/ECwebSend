@@ -1565,10 +1565,15 @@
             document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
         }
 
+        window.receivedBlobs = {};
+
         function processIncomingFile() {
             playBeep('receive');
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
-            const url = URL.createObjectURL(blob);
+            
+            // Generar un ID para almacenar el archivo en memoria y poder llamarlo luego
+            const fileId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            window.receivedBlobs[fileId] = { blob: blob, name: incomingFileInfo.name, mime: incomingFileInfo.mime };
             
             const isContact = incomingFileInfo.name.toLowerCase().endsWith('.vcf') || incomingFileInfo.mime.includes('vcard');
             const icon = isContact ? 'users' : 'check';
@@ -1577,7 +1582,13 @@
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
             
-            // Insertamos de manera segura para evitar repintar los íconos antiguos
+            // Detección de iOS para mejorar la experiencia
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isMedia = incomingFileInfo.mime.startsWith('image/') || incomingFileInfo.mime.startsWith('video/');
+            const iosTip = (isIOS && isMedia) ? `<p class="text-[9px] text-blue-400 mt-1 font-semibold">Toca el botón para guardar en Fotos ➔</p>` : '';
+            const btnIcon = isIOS ? 'share' : 'download';
+
+            // Insertamos de manera segura
             const newItemHtml = `
                 <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
                     <div class="flex items-center gap-3 overflow-hidden">
@@ -1585,18 +1596,57 @@
                         <div class="truncate">
                             <p class="text-sm font-semibold text-zinc-200 truncate">${incomingFileInfo.name}</p>
                             <p class="text-[10px] text-zinc-500">${(incomingFileInfo.size / (1024*1024)).toFixed(2)} MB</p>
+                            ${iosTip}
                         </div>
                     </div>
-                    <a href="${url}" download="${incomingFileInfo.name}" class="p-2 text-primary bg-primary/10 rounded-lg"><i data-lucide="download" class="w-4 h-4"></i></a>
+                    <button onclick="window.saveReceivedFile('${fileId}')" class="p-2 text-primary bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg shrink-0 flex items-center justify-center">
+                        <i data-lucide="${btnIcon}" class="w-4 h-4"></i>
+                    </button>
                 </li>`;
             
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
-            const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+            // Auto-descarga clásica solo si NO es iOS (para evitar spam en app "Archivos" de iPhone)
+            if (!isIOS) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+            }
             
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
+
+        // Nueva función mágica que usa el sistema nativo de los celulares
+        window.saveReceivedFile = async (fileId) => {
+            const fileData = window.receivedBlobs[fileId];
+            if (!fileData) return window.showToast("El archivo ya expiró", "error");
+            
+            const file = new File([fileData.blob], fileData.name, { type: fileData.mime });
+            
+            // Intentar abrir el menú de Compartir nativo (Ideal para iOS: permite "Guardar en Fotos")
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: fileData.name
+                    });
+                    return; // Si el menú se abre bien, terminamos
+                } catch (err) {
+                    if (err.name === 'AbortError') return; // Cancelado por el usuario (normal)
+                }
+            }
+            
+            // Fallback de descarga si no es un celular o falla el menú
+            const url = URL.createObjectURL(fileData.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileData.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        };
 
         function finishSendingBatch() {
             document.getElementById('transfer-title').innerText = '¡Enviado!';
