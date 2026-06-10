@@ -459,7 +459,6 @@
                     <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-receive"></div>
                     <i data-lucide="download-cloud" class="w-5 h-5"></i>
                     <span class="text-[9px] font-bold tracking-wider">RECIBIR</span>
-                    <span id="badge-nav-receive" class="absolute top-1.5 right-4 w-2 h-2 bg-primary rounded-full hidden"></span>
                 </button>
             </li>
             <li class="flex-1 border-l border-white/5">
@@ -675,12 +674,6 @@
                     navBtn.classList.remove('text-zinc-500');
                     navBtn.classList.add('text-primary');
                     indicator.classList.remove('opacity-0');
-                    
-                    // Si abre recibir, quitamos la alerta visual del badge de la barra de navegación
-                    if (view === 'receive') {
-                        const badgeNav = document.getElementById('badge-nav-receive');
-                        if (badgeNav) badgeNav.classList.add('hidden');
-                    }
                 } else {
                     const targetIndex = views.indexOf(targetView);
                     const currIndex = views.indexOf(view);
@@ -1113,27 +1106,20 @@
             }
         };
 
-        // --- INICIAR PEERJS CON AUTORECUPERACIÓN ---
+        // --- INICIAR PEERJS ---
         function initPeer() {
             try {
                 if (typeof Peer === 'undefined') return console.warn("PeerJS no cargó.");
                 
-                // Múltiples servidores STUN robustos de Google y Twilio para garantizar la conexión en redes móviles (4G/5G)
                 const iceServers = appSettings.network === 'global' 
-                    ? [ 
-                        { urls: 'stun:stun.l.google.com:19302' }, 
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'stun:stun3.l.google.com:19302' },
-                        { urls: 'stun:stun4.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                      ] 
+                    ? [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] 
                     : [];
 
-                peer = new Peer(myPeerId, { debug: 1, config: { 'iceServers': iceServers } });
+                peer = new Peer(myPeerId, { debug: 2, config: { 'iceServers': iceServers } });
 
                 peer.on('open', (id) => {
-                    document.getElementById('status-dot').className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]';
+                    document.getElementById('status-dot').classList.remove('bg-yellow-500', 'bg-red-500');
+                    document.getElementById('status-dot').classList.add('bg-green-500');
                     document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
                     checkURLParams();
                 });
@@ -1150,34 +1136,23 @@
                     if (conn.open) handleConnection();
                 });
 
-                // Reconectar automáticamente con un delay prudencial para no saturar al servidor
+                // NUEVO: Reconectar automáticamente si el celular duerme la pestaña por ir a WhatsApp
                 peer.on('disconnected', () => {
-                    document.getElementById('status-dot').className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]';
-                    document.getElementById('status-text').innerText = "Reconectando canal...";
-                    
-                    setTimeout(() => {
-                        if (peer && peer.disconnected && !peer.destroyed) {
-                            peer.reconnect();
-                        }
-                    }, 2000);
+                    document.getElementById('status-dot').classList.remove('bg-green-500');
+                    document.getElementById('status-dot').classList.add('bg-yellow-500');
+                    document.getElementById('status-text').innerText = "Reconectando...";
+                    if (!peer.destroyed) {
+                        peer.reconnect();
+                    }
                 });
 
                 peer.on('error', (err) => {
-                    console.error("PeerJS Error:", err);
                     if (err.type === 'peer-unavailable') {
-                        window.showToast('Dispositivo no encontrado. Pídele que mantenga la pestaña de ECSend Pro en pantalla.', 'error');
-                        resetConnectionUI();
-                    } else if (err.type === 'unavailable-id') {
-                        // ID en uso temporalmente, regenerar uno nuevo para resolver el bloqueo
-                        refreshMyCode();
+                        window.showToast('Dispositivo no encontrado. Pídele a tu amigo que mantenga la pantalla encendida.', 'error');
                     } else {
-                        window.showToast('Buscando servidor de respaldo. Reconectando...', 'info');
-                        setTimeout(() => {
-                            if (!activeConnection || !activeConnection.open) {
-                                refreshMyCode();
-                            }
-                        }, 3000);
+                        window.showToast('Error de red. Por favor, recarga la página.', 'error');
                     }
+                    resetConnectionUI();
                 });
             } catch (e) {
                 console.warn("Error PeerJS:", e);
@@ -1185,7 +1160,7 @@
         }
         setTimeout(initPeer, 800);
 
-        // Despertar la pestaña activamente si el usuario minimizó o apagó la pantalla para ir a WhatsApp
+        // NUEVO: Detección cuando el usuario vuelve de WhatsApp a la pestaña
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 if (peer && peer.disconnected && !peer.destroyed) {
@@ -1207,20 +1182,7 @@
         }
 
         window.connectToPeer = () => {
-            if (!peer || peer.destroyed) {
-                window.showToast('Iniciando servidor de respaldo...', 'info');
-                initPeer();
-                return;
-            }
-            if (peer.disconnected) {
-                window.showToast('Reconectando señal WebRTC...', 'info');
-                peer.reconnect();
-                setTimeout(() => {
-                    if (!peer.disconnected) window.connectToPeer();
-                }, 2000);
-                return;
-            }
-
+            if (!peer) return window.showToast('Servidor no disponible', 'error');
             const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
             if (input.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
             if (input === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
@@ -1232,7 +1194,7 @@
             const conn = peer.connect(PREFIX + input, { reliable: true });
             
             conn.on('error', (err) => {
-                window.showToast('Fallo en el enlace inicial. Pídele que encienda su pantalla.', 'error');
+                window.showToast('Fallo al enlazar. Por favor, recarga la página.', 'error');
                 resetConnectionUI();
             });
 
@@ -1260,7 +1222,7 @@
                 document.getElementById('modal-scanner').classList.add('hidden');
             }
 
-            // Detección avanzada de caídas de red (WebRTC ICE State) con margen de gracia de 30s
+            // Detección avanzada de caídas de red (WebRTC ICE State)
             let iceTimeout = null;
             if (conn.peerConnection) {
                 conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
@@ -1340,7 +1302,7 @@
                         console.warn("Mensaje JSON corrupto", e);
                     }
                 } else {
-                    // Soporte de cálculo de bytes recibidos
+                    // Corrección: Soporte mejorado para calcular los bytes recibidos sin NaN
                     const chunkLength = data.byteLength || data.size || data.length || 0;
                     incomingData.push(data); 
                     incomingBytes += chunkLength;
@@ -1367,7 +1329,7 @@
         function updateUIConnected() {
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
-            btn.className = "bg-green-600 hover:bg-green-500 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(22,163,74,0.4)] active:scale-95 flex items-center justify-center shrink-0";
+            btn.classList.replace('bg-primary', 'bg-green-600');
             document.getElementById('connection-status').classList.remove('hidden');
             document.getElementById('connection-status').classList.add('flex');
             
@@ -1380,7 +1342,7 @@
             clearInterval(keepAliveInterval);
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
-            btn.className = "bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0";
+            btn.classList.replace('bg-green-600', 'bg-primary');
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
             document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
@@ -1603,15 +1565,10 @@
             document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
         }
 
-        window.receivedBlobs = {};
-
         function processIncomingFile() {
             playBeep('receive');
             const blob = new Blob(incomingData, { type: incomingFileInfo.mime });
-            
-            // Generar un ID para almacenar el archivo en memoria y poder llamarlo luego
-            const fileId = 'file_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            window.receivedBlobs[fileId] = { blob: blob, name: incomingFileInfo.name, mime: incomingFileInfo.mime };
+            const url = URL.createObjectURL(blob);
             
             const isContact = incomingFileInfo.name.toLowerCase().endsWith('.vcf') || incomingFileInfo.mime.includes('vcard');
             const icon = isContact ? 'users' : 'check';
@@ -1620,13 +1577,7 @@
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
             
-            // Detección de iOS para mejorar la experiencia
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isMedia = incomingFileInfo.mime.startsWith('image/') || incomingFileInfo.mime.startsWith('video/');
-            const iosTip = (isIOS && isMedia) ? `<p class="text-[9px] text-blue-400 mt-1 font-semibold">Toca el botón para guardar en Fotos ➔</p>` : '';
-            const btnIcon = isIOS ? 'share' : 'download';
-
-            // Insertamos de manera segura
+            // Insertamos de manera segura para evitar repintar los íconos antiguos
             const newItemHtml = `
                 <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
                     <div class="flex items-center gap-3 overflow-hidden">
@@ -1634,68 +1585,18 @@
                         <div class="truncate">
                             <p class="text-sm font-semibold text-zinc-200 truncate">${incomingFileInfo.name}</p>
                             <p class="text-[10px] text-zinc-500">${(incomingFileInfo.size / (1024*1024)).toFixed(2)} MB</p>
-                            ${iosTip}
                         </div>
                     </div>
-                    <button onclick="window.saveReceivedFile('${fileId}')" class="p-2 text-primary bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg shrink-0 flex items-center justify-center">
-                        <i data-lucide="${btnIcon}" class="w-4 h-4"></i>
-                    </button>
+                    <a href="${url}" download="${incomingFileInfo.name}" class="p-2 text-primary bg-primary/10 rounded-lg"><i data-lucide="download" class="w-4 h-4"></i></a>
                 </li>`;
             
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
-            // Incrementar y mostrar el badge de recibidos en la navegación inferior
-            const badgeNav = document.getElementById('badge-nav-receive');
-            if (badgeNav) badgeNav.classList.remove('hidden');
-
-            const badgeHeader = document.getElementById('badge-received');
-            if (badgeHeader) {
-                const currentCount = parseInt(badgeHeader.innerText) || 0;
-                badgeHeader.innerText = currentCount + 1;
-                badgeHeader.classList.remove('hidden');
-            }
-
-            // Auto-descarga clásica solo si NO es iOS (para evitar spam en app "Archivos" de iPhone)
-            if (!isIOS) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-            }
+            const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
             
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
-
-        // Función que usa la interfaz nativa del teléfono
-        window.saveReceivedFile = async (fileId) => {
-            const fileData = window.receivedBlobs[fileId];
-            if (!fileData) return window.showToast("El archivo ya expiró", "error");
-            
-            const file = new File([fileData.blob], fileData.name, { type: fileData.mime });
-            
-            // Intentar abrir el menú de Compartir nativo (Ideal para iOS: permite "Guardar en Fotos")
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: fileData.name
-                    });
-                    return; // Si el menú se abre bien, terminamos
-                } catch (err) {
-                    if (err.name === 'AbortError') return; // Cancelado por el usuario (normal)
-                }
-            }
-            
-            // Fallback de descarga si no es un celular o falla el menú
-            const url = URL.createObjectURL(fileData.blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileData.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
-        };
 
         function finishSendingBatch() {
             document.getElementById('transfer-title').innerText = '¡Enviado!';
