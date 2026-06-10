@@ -39,6 +39,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
+    <!-- JSZip: Librería para comprimir multiples archivos en un solo ZIP para evitar spam de descargas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
@@ -578,6 +581,22 @@
         </div>
     </div>
 
+    <!-- MODAL CONFIRMACIÓN DE TRANSFERENCIA (SEGURIDAD) -->
+    <div id="modal-request" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[110] hidden flex-col items-center justify-center p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
+            <div class="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4 border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                <i data-lucide="alert-circle" class="w-8 h-8 text-yellow-400"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1 text-center">Petición de Archivos</h3>
+            <p id="request-desc" class="text-[13px] text-zinc-300 mb-6 text-center leading-relaxed font-medium">El otro dispositivo quiere enviarte archivos.</p>
+            
+            <div class="flex gap-3 w-full">
+                <button onclick="window.respondTransferRequest(false)" class="flex-1 py-3 bg-zinc-800 hover:bg-red-500/20 text-white hover:text-red-400 hover:border-red-500/50 rounded-xl font-bold transition-all border border-white/5 active:scale-95">Rechazar</button>
+                <button onclick="window.respondTransferRequest(true)" class="flex-1 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DE TRANSFERENCIA -->
     <div id="modal-transfer" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[70] hidden flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-sm flex flex-col items-center">
@@ -1043,7 +1062,7 @@
             });
         }
 
-        // --- VARIABLES GLOBALES DE WEBRTC ---
+        // --- VARIABLES GLOBALES DE WEBRTC Y ZIP ---
         if (window.lucide) window.lucide.createIcons();
         const PREFIX = "ecsend-";
         let myRawCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -1059,6 +1078,10 @@
         window.batchBytesSent = 0;
         window.batchCurrentIndex = 1;
         window.batchBytesReceived = 0;
+
+        // Variables de JSZip (Protección contra OS Crash)
+        window.batchZip = null;
+        window.batchZipName = '';
 
         document.getElementById('my-code').innerText = myRawCode.match(/.{1,3}/g).join('-');
 
@@ -1146,7 +1169,6 @@
                     if (conn.open) handleConnection();
                 });
 
-                // NUEVO: Reconectar automáticamente si el celular duerme la pestaña por ir a WhatsApp
                 peer.on('disconnected', () => {
                     document.getElementById('status-dot').classList.remove('bg-green-500');
                     document.getElementById('status-dot').classList.add('bg-yellow-500');
@@ -1170,7 +1192,6 @@
         }
         setTimeout(initPeer, 800);
 
-        // NUEVO: Detección cuando el usuario vuelve de WhatsApp a la pestaña
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 if (peer && peer.disconnected && !peer.destroyed) {
@@ -1216,7 +1237,7 @@
             });
         };
 
-        // --- SISTEMA WEBRTC CORE CORREGIDO ---
+        // --- SISTEMA WEBRTC CORE CORREGIDO Y SEGURO ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
 
         function setupConnection(conn) {
@@ -1224,7 +1245,6 @@
             playBeep('connect');
             stopCodeTimer();
 
-            // Cerrar modales de QR automáticamente al enlazarse exitosamente
             document.getElementById('modal-qr').classList.add('hidden');
             if (html5QrCode && html5QrCode.isScanning) {
                 window.stopQRScanner();
@@ -1232,13 +1252,11 @@
                 document.getElementById('modal-scanner').classList.add('hidden');
             }
 
-            // Detección avanzada de caídas de red (WebRTC ICE State)
             let iceTimeout = null;
             if (conn.peerConnection) {
                 conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
                     const state = conn.peerConnection.iceConnectionState;
                     if (state === 'disconnected') {
-                        // Dar 30 segundos de gracia cuando el navegador se va a segundo plano (ej. al abrir la galería)
                         iceTimeout = setTimeout(() => {
                             if (activeConnection === conn) conn.close();
                         }, 30000);
@@ -1272,12 +1290,45 @@
                             window.receiveChatMessage(msg.text);
                             return;
                         }
+                        
+                        // PARCHE DE SEGURIDAD 1: Recibir petición de transferencia
+                        if (msg.type === 'request-transfer') {
+                            const sizeMB = (msg.batchTotalSize / (1024*1024)).toFixed(2);
+                            document.getElementById('request-desc').innerText = `Desea enviarte ${msg.batchTotalFiles} archivo(s) con un peso de ${sizeMB} MB.`;
+                            const modalReq = document.getElementById('modal-request');
+                            modalReq.classList.remove('hidden');
+                            modalReq.classList.add('flex');
+                            playBeep('chat'); // Alertar petición
+                            return;
+                        }
+                        
+                        // PARCHE DE SEGURIDAD 1: Recibir respuesta de transferencia
+                        if (msg.type === 'response-transfer') {
+                            if (msg.accept) {
+                                document.getElementById('transfer-title').innerText = 'Enviando...';
+                                sendNextFile(); // Empezar bucle de envío si aceptó
+                            } else {
+                                window.closeTransferModal();
+                                window.showToast('Transferencia rechazada por el destinatario.', 'error');
+                            }
+                            return;
+                        }
 
                         if (msg.type === 'header') {
                             incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
                             
                             if (msg.batchCurrentIndex === 1) {
                                 window.batchBytesReceived = 0;
+                                
+                                // PARCHE DE SEGURIDAD 2: Inicializar ZIP si son múltiples archivos
+                                if (msg.batchTotalFiles > 1 && typeof JSZip !== 'undefined') {
+                                    window.batchZip = new JSZip();
+                                    const dateStr = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                                    window.batchZipName = `ECSend_Transferencia_${dateStr}.zip`;
+                                } else {
+                                    window.batchZip = null;
+                                }
+
                                 openTransferModal(
                                     msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
                                     msg.batchTotalSize, 
@@ -1312,7 +1363,6 @@
                         console.warn("Mensaje JSON corrupto", e);
                     }
                 } else {
-                    // Corrección: Soporte mejorado para calcular los bytes recibidos sin NaN
                     const chunkLength = data.byteLength || data.size || data.length || 0;
                     incomingData.push(data); 
                     incomingBytes += chunkLength;
@@ -1325,7 +1375,6 @@
                 playBeep('disconnect');
                 window.showToast('Se perdió la conexión con el dispositivo.', 'error');
                 
-                // Si había una transferencia en progreso, la cancelamos visualmente
                 const transferModal = document.getElementById('modal-transfer');
                 if (!transferModal.classList.contains('hidden')) {
                     window.closeTransferModal();
@@ -1335,6 +1384,16 @@
                 resetConnectionUI();
             });
         }
+        
+        // RESPONDER A PETICIÓN DE TRANSFERENCIA
+        window.respondTransferRequest = (accept) => {
+            document.getElementById('modal-request').classList.add('hidden');
+            document.getElementById('modal-request').classList.remove('flex');
+            
+            if (activeConnection && activeConnection.open) {
+                activeConnection.send(JSON.stringify({ type: 'response-transfer', accept: accept }));
+            }
+        };
 
         function updateUIConnected() {
             const btn = document.getElementById('btn-connect');
@@ -1391,7 +1450,6 @@
         const handleFileSelect = (e) => {
             if(e.target.files.length) {
                 showFileLoading();
-                // Usamos setTimeout para permitir que el modal se renderice antes de procesar archivos pesados
                 setTimeout(() => {
                     addFiles(Array.from(e.target.files));
                     e.target.value = '';
@@ -1471,11 +1529,11 @@
                 btn.className = "w-full py-4 mb-6 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed";
             }
             
-            // Forzamos el contenido interno para evitar que se dupliquen elementos visuales
             btn.innerHTML = `<i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos`;
             if (window.lucide) window.lucide.createIcons();
         }
 
+        // PARCHE DE SEGURIDAD 1: Solicitar transferencia primero en lugar de enviar directamente
         window.sendSelectedFiles = () => {
             if (!activeConnection || !activeConnection.open || selectedFiles.length === 0) return;
             
@@ -1484,7 +1542,14 @@
             window.batchBytesSent = 0;
             window.batchCurrentIndex = 1;
             
-            sendNextFile();
+            openTransferModal('Esperando autorización...', window.batchTotalSize, 'send');
+            document.getElementById('transfer-title').innerText = 'Solicitando permiso';
+            
+            activeConnection.send(JSON.stringify({ 
+                type: 'request-transfer',
+                batchTotalSize: window.batchTotalSize,
+                batchTotalFiles: window.batchTotalFiles
+            }));
         };
 
         function sendNextFile() {
@@ -1492,11 +1557,7 @@
             const file = selectedFiles[0]; 
             
             if (window.batchCurrentIndex === 1) {
-                openTransferModal(
-                    window.batchTotalFiles > 1 ? `Enviando ${window.batchTotalFiles} archivos...` : file.name, 
-                    window.batchTotalSize, 
-                    'send'
-                );
+                document.getElementById('transfer-filename').innerText = window.batchTotalFiles > 1 ? `Enviando ${window.batchTotalFiles} archivos...` : file.name;
             } else {
                 document.getElementById('transfer-filename').innerText = `Enviando archivo ${window.batchCurrentIndex} de ${window.batchTotalFiles}...`;
                 document.getElementById('transfer-title').innerText = 'Enviando...';
@@ -1512,12 +1573,10 @@
                 batchCurrentIndex: window.batchCurrentIndex
             }));
 
-            // Mejora de estabilidad: Chunk de 16KB para no saturar WebRTC
             const chunkSize = 16 * 1024; let offset = 0;
-            const MAX_BUFFER = 2 * 1024 * 1024; // 2MB max permitidos en buffer
+            const MAX_BUFFER = 2 * 1024 * 1024; 
             
             const readNextChunk = () => {
-                // Controlar saturación de WebRTC
                 const dc = activeConnection.dataChannel;
                 if (dc && dc.bufferedAmount > MAX_BUFFER) {
                     setTimeout(readNextChunk, 50); 
@@ -1550,7 +1609,6 @@
             setTimeout(readNextChunk, 50);
         }
 
-        // --- MODAL Y RESULTADO CORREGIDO ---
         function openTransferModal(filename, size, mode) {
             document.getElementById('modal-transfer').classList.remove('hidden');
             document.getElementById('btn-transfer-close').classList.add('hidden');
@@ -1558,7 +1616,6 @@
             document.getElementById('transfer-filename').innerText = filename;
             document.getElementById('transfer-title').innerText = mode === 'send' ? 'Enviando...' : 'Recibiendo...';
             
-            // Recreamos el ícono limpiamente
             const iconContainer = document.getElementById('transfer-icon-container');
             iconContainer.innerHTML = `<i data-lucide="${mode === 'send' ? 'arrow-up-circle' : 'arrow-down-circle'}" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
             if (window.lucide) window.lucide.createIcons();
@@ -1587,7 +1644,6 @@
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
             
-            // Insertamos de manera segura para evitar repintar los íconos antiguos
             const newItemHtml = `
                 <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
                     <div class="flex items-center gap-3 overflow-hidden">
@@ -1603,7 +1659,12 @@
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
-            const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+            // PARCHE DE SEGURIDAD 2: Empaquetar en ZIP si son varios archivos (No forzar descargas)
+            if (window.batchZip) {
+                window.batchZip.file(incomingFileInfo.name, blob);
+            } else {
+                const a = document.createElement('a'); a.href = url; a.download = incomingFileInfo.name; a.click();
+            }
             
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
@@ -1612,7 +1673,6 @@
             document.getElementById('transfer-title').innerText = '¡Enviado!';
             document.getElementById('transfer-filename').innerText = 'Todos los archivos transferidos';
             
-            // Recreamos el ícono limpiamente
             const iconContainer = document.getElementById('transfer-icon-container');
             iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
             if (window.lucide) window.lucide.createIcons();
@@ -1623,15 +1683,41 @@
         }
 
         function finishReceivingBatch() {
-            document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
-            document.getElementById('transfer-filename').innerText = 'Todos los archivos recibidos';
-            
-            const iconContainer = document.getElementById('transfer-icon-container');
-            iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
-            if (window.lucide) window.lucide.createIcons();
-            
-            document.getElementById('transfer-progress-bar').style.width = '100%';
-            document.getElementById('btn-transfer-close').classList.remove('hidden');
+            // PARCHE DE SEGURIDAD 2: Finalizar ZIP y descargarlo de manera segura
+            if (window.batchZip) {
+                document.getElementById('transfer-title').innerText = 'Comprimiendo ZIP...';
+                document.getElementById('transfer-filename').innerText = 'Preparando paquete de descarga segura...';
+                
+                window.batchZip.generateAsync({ type: 'blob' }).then(function(content) {
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement('a'); 
+                    a.href = url; 
+                    a.download = window.batchZipName; 
+                    a.click();
+                    
+                    document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
+                    document.getElementById('transfer-filename').innerText = window.batchZipName;
+                    
+                    const iconContainer = document.getElementById('transfer-icon-container');
+                    iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    document.getElementById('transfer-progress-bar').style.width = '100%';
+                    document.getElementById('btn-transfer-close').classList.remove('hidden');
+                    
+                    window.batchZip = null; // Limpiar memoria
+                });
+            } else {
+                document.getElementById('transfer-title').innerText = '¡Descarga Completa!';
+                document.getElementById('transfer-filename').innerText = 'Archivo recibido';
+                
+                const iconContainer = document.getElementById('transfer-icon-container');
+                iconContainer.innerHTML = `<i data-lucide="check-circle" id="transfer-icon" class="w-10 h-10 text-primary"></i>`;
+                if (window.lucide) window.lucide.createIcons();
+                
+                document.getElementById('transfer-progress-bar').style.width = '100%';
+                document.getElementById('btn-transfer-close').classList.remove('hidden');
+            }
         }
 
         // --- SISTEMA DE CHAT P2P ---
@@ -1681,7 +1767,6 @@
             
             div.className = `flex flex-col max-w-[80%] animate-slide-up ${origin === 'local' ? 'self-end' : 'self-start'}`;
             
-            // Estilos Pro para las burbujas
             let bubbleClass = origin === 'local' 
                 ? "bg-primary text-white rounded-2xl rounded-tr-sm shadow-md" 
                 : "bg-zinc-800 text-zinc-100 rounded-2xl rounded-tl-sm shadow-md border border-white/5";
