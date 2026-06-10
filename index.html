@@ -153,7 +153,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-1">
-                        <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECSend <span id="pro-badge" class="text-[10px] font-bold text-red-400 bg-red-500/20 border border-red-500/30 px-1.5 py-0.5 rounded-md ml-1 tracking-widest shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all duration-500">PRO</span></h1>
+                        <h1 class="font-bold text-lg leading-none tracking-tight text-white">ECSend <span id="pro-badge" class="text-[10px] font-bold text-yellow-400 bg-yellow-500/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-md ml-1 tracking-widest shadow-[0_0_10px_rgba(250,204,21,0.2)] transition-all duration-500">PRO</span></h1>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-500 ml-0.5"></i>
                     </div>
                     <div class="flex items-center gap-1.5 mt-1">
@@ -517,6 +517,9 @@
                 <div class="bg-zinc-800/50 p-3.5 rounded-xl border border-white/5">
                     <span class="text-primary font-bold">3. Recibir:</span> Si te envían algo, ve a la pestaña <b class="text-white">"RECIBIR"</b> para ver tu bandeja de entrada y descargar.
                 </div>
+                <div class="bg-yellow-500/10 p-3.5 rounded-xl border border-yellow-500/30 text-yellow-200">
+                    <span class="text-yellow-400 font-bold flex items-center gap-1.5 mb-1"><i data-lucide="smartphone" class="w-4 h-4"></i> Aviso para Apple (iOS/Mac):</span> Por restricciones del sistema en descargas múltiples, te recomendamos seleccionar y enviar los archivos <b>de uno en uno</b>.
+                </div>
             </div>
             
             <button onclick="window.toggleHelpModal()" class="w-full mt-6 py-3.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95">
@@ -736,12 +739,19 @@
             const badge = document.getElementById('pro-badge');
             if (!badge) return;
             badge.className = "text-[10px] font-bold px-1.5 py-0.5 rounded-md ml-1 tracking-widest transition-all duration-500 border ";
-            if (state === 'connecting') {
-                badge.className += "text-blue-400 bg-blue-500/20 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.2)]";
+            
+            if (state === 'ready' || state === 'connecting') {
+                // AZUL: Listo para conectar o conectando
+                badge.className += "text-blue-400 bg-blue-500/20 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]";
             } else if (state === 'connected') {
-                badge.className += "text-green-400 bg-green-500/20 border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.2)]";
+                // VERDE: Conectado a otro dispositivo
+                badge.className += "text-green-400 bg-green-500/20 border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.3)]";
+            } else if (state === 'error') {
+                // ROJO: Error o desconectado del servidor
+                badge.className += "text-red-400 bg-red-500/20 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]";
             } else {
-                badge.className += "text-red-400 bg-red-500/20 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]";
+                // AMARILLO: Iniciando servidor
+                badge.className += "text-yellow-400 bg-yellow-500/20 border-yellow-500/30 shadow-[0_0_10px_rgba(250,204,21,0.2)]";
             }
         };
 
@@ -1148,6 +1158,8 @@
             try {
                 if (typeof Peer === 'undefined') return console.warn("PeerJS no cargó.");
                 
+                window.updateProBadge('starting');
+
                 const iceServers = appSettings.network === 'global' 
                     ? [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] 
                     : [];
@@ -1158,11 +1170,13 @@
                     document.getElementById('status-dot').classList.remove('bg-yellow-500', 'bg-red-500');
                     document.getElementById('status-dot').classList.add('bg-green-500');
                     document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
+                    window.updateProBadge('ready');
                     checkURLParams();
                 });
 
                 peer.on('connection', (conn) => {
                     window.updateProBadge('connecting');
+                    window.showToast('Recibiendo solicitud de conexión...', 'info');
                     const handleConnection = () => {
                         if (activeConnection === conn) return;
                         setupConnection(conn);
@@ -1179,12 +1193,14 @@
                     document.getElementById('status-dot').classList.remove('bg-green-500');
                     document.getElementById('status-dot').classList.add('bg-yellow-500');
                     document.getElementById('status-text').innerText = "Reconectando...";
+                    window.updateProBadge('error');
                     if (!peer.destroyed) {
                         peer.reconnect();
                     }
                 });
 
                 peer.on('error', (err) => {
+                    window.updateProBadge('error');
                     if (err.type === 'peer-unavailable') {
                         window.showToast('Dispositivo no encontrado. Pídele a tu amigo que mantenga la pantalla encendida.', 'error');
                     } else {
@@ -1221,24 +1237,36 @@
 
         window.connectToPeer = () => {
             if (!peer) return window.showToast('Servidor no disponible', 'error');
-            const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
-            if (input.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
-            if (input === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
+            const input = document.getElementById('target-code');
+            const codeVal = input.value.trim().replace(/-/g, '');
+            if (codeVal.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
+            if (codeVal === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
 
             window.updateProBadge('connecting');
+            window.showToast('Estableciendo conexión P2P...', 'info');
 
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
+            btn.disabled = true;
+            input.disabled = true;
             if (window.lucide) window.lucide.createIcons();
 
-            const conn = peer.connect(PREFIX + input, { reliable: true });
+            const conn = peer.connect(PREFIX + codeVal, { reliable: true });
             
+            // Timeout de aviso si tarda demasiado
+            const connectionTimeout = setTimeout(() => {
+                if (btn.disabled) window.showToast('La red está demorando. Espera o recarga la página...', 'info');
+            }, 6000);
+
             conn.on('error', (err) => {
+                clearTimeout(connectionTimeout);
                 window.showToast('Fallo al enlazar. Por favor, recarga la página.', 'error');
                 resetConnectionUI();
             });
 
             conn.on('open', () => {
+                clearTimeout(connectionTimeout);
+                input.disabled = false;
                 setupConnection(conn);
                 window.showToast('¡Enlazado exitosamente!', 'success');
                 updateUIConnected();
@@ -1393,7 +1421,7 @@
         }
 
         function resetConnectionUI() {
-            window.updateProBadge('disconnected');
+            window.updateProBadge('ready');
             clearInterval(keepAliveInterval);
             
             // Ocultar la advertencia de Apple al desconectarse
@@ -1404,8 +1432,13 @@
             }
 
             const btn = document.getElementById('btn-connect');
+            btn.disabled = false;
             btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
             btn.classList.replace('bg-green-600', 'bg-primary');
+            
+            const input = document.getElementById('target-code');
+            if(input) input.disabled = false;
+            
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
             document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
