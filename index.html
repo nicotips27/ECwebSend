@@ -459,6 +459,7 @@
                     <div class="absolute top-0 w-8 h-0.5 bg-primary rounded-full opacity-0 transition-opacity" id="indicator-receive"></div>
                     <i data-lucide="download-cloud" class="w-5 h-5"></i>
                     <span class="text-[9px] font-bold tracking-wider">RECIBIR</span>
+                    <span id="badge-nav-receive" class="absolute top-1.5 right-4 w-2 h-2 bg-primary rounded-full hidden"></span>
                 </button>
             </li>
             <li class="flex-1 border-l border-white/5">
@@ -674,6 +675,12 @@
                     navBtn.classList.remove('text-zinc-500');
                     navBtn.classList.add('text-primary');
                     indicator.classList.remove('opacity-0');
+                    
+                    // Si abre recibir, quitamos la alerta visual del badge de la barra de navegación
+                    if (view === 'receive') {
+                        const badgeNav = document.getElementById('badge-nav-receive');
+                        if (badgeNav) badgeNav.classList.add('hidden');
+                    }
                 } else {
                     const targetIndex = views.indexOf(targetView);
                     const currIndex = views.indexOf(view);
@@ -1106,20 +1113,27 @@
             }
         };
 
-        // --- INICIAR PEERJS ---
+        // --- INICIAR PEERJS CON AUTORECUPERACIÓN ---
         function initPeer() {
             try {
                 if (typeof Peer === 'undefined') return console.warn("PeerJS no cargó.");
                 
+                // Múltiples servidores STUN robustos de Google y Twilio para garantizar la conexión en redes móviles (4G/5G)
                 const iceServers = appSettings.network === 'global' 
-                    ? [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] 
+                    ? [ 
+                        { urls: 'stun:stun.l.google.com:19302' }, 
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                      ] 
                     : [];
 
-                peer = new Peer(myPeerId, { debug: 2, config: { 'iceServers': iceServers } });
+                peer = new Peer(myPeerId, { debug: 1, config: { 'iceServers': iceServers } });
 
                 peer.on('open', (id) => {
-                    document.getElementById('status-dot').classList.remove('bg-yellow-500', 'bg-red-500');
-                    document.getElementById('status-dot').classList.add('bg-green-500');
+                    document.getElementById('status-dot').className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]';
                     document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
                     checkURLParams();
                 });
@@ -1136,23 +1150,34 @@
                     if (conn.open) handleConnection();
                 });
 
-                // NUEVO: Reconectar automáticamente si el celular duerme la pestaña por ir a WhatsApp
+                // Reconectar automáticamente con un delay prudencial para no saturar al servidor
                 peer.on('disconnected', () => {
-                    document.getElementById('status-dot').classList.remove('bg-green-500');
-                    document.getElementById('status-dot').classList.add('bg-yellow-500');
-                    document.getElementById('status-text').innerText = "Reconectando...";
-                    if (!peer.destroyed) {
-                        peer.reconnect();
-                    }
+                    document.getElementById('status-dot').className = 'w-2 h-2 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]';
+                    document.getElementById('status-text').innerText = "Reconectando canal...";
+                    
+                    setTimeout(() => {
+                        if (peer && peer.disconnected && !peer.destroyed) {
+                            peer.reconnect();
+                        }
+                    }, 2000);
                 });
 
                 peer.on('error', (err) => {
+                    console.error("PeerJS Error:", err);
                     if (err.type === 'peer-unavailable') {
-                        window.showToast('Dispositivo no encontrado. Pídele a tu amigo que mantenga la pantalla encendida.', 'error');
+                        window.showToast('Dispositivo no encontrado. Pídele que mantenga la pestaña de ECSend Pro en pantalla.', 'error');
+                        resetConnectionUI();
+                    } else if (err.type === 'unavailable-id') {
+                        // ID en uso temporalmente, regenerar uno nuevo para resolver el bloqueo
+                        refreshMyCode();
                     } else {
-                        window.showToast('Error de red. Por favor, recarga la página.', 'error');
+                        window.showToast('Buscando servidor de respaldo. Reconectando...', 'info');
+                        setTimeout(() => {
+                            if (!activeConnection || !activeConnection.open) {
+                                refreshMyCode();
+                            }
+                        }, 3000);
                     }
-                    resetConnectionUI();
                 });
             } catch (e) {
                 console.warn("Error PeerJS:", e);
@@ -1160,7 +1185,7 @@
         }
         setTimeout(initPeer, 800);
 
-        // NUEVO: Detección cuando el usuario vuelve de WhatsApp a la pestaña
+        // Despertar la pestaña activamente si el usuario minimizó o apagó la pantalla para ir a WhatsApp
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 if (peer && peer.disconnected && !peer.destroyed) {
@@ -1182,7 +1207,20 @@
         }
 
         window.connectToPeer = () => {
-            if (!peer) return window.showToast('Servidor no disponible', 'error');
+            if (!peer || peer.destroyed) {
+                window.showToast('Iniciando servidor de respaldo...', 'info');
+                initPeer();
+                return;
+            }
+            if (peer.disconnected) {
+                window.showToast('Reconectando señal WebRTC...', 'info');
+                peer.reconnect();
+                setTimeout(() => {
+                    if (!peer.disconnected) window.connectToPeer();
+                }, 2000);
+                return;
+            }
+
             const input = document.getElementById('target-code').value.trim().replace(/-/g, '');
             if (input.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
             if (input === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
@@ -1194,7 +1232,7 @@
             const conn = peer.connect(PREFIX + input, { reliable: true });
             
             conn.on('error', (err) => {
-                window.showToast('Fallo al enlazar. Por favor, recarga la página.', 'error');
+                window.showToast('Fallo en el enlace inicial. Pídele que encienda su pantalla.', 'error');
                 resetConnectionUI();
             });
 
@@ -1222,7 +1260,7 @@
                 document.getElementById('modal-scanner').classList.add('hidden');
             }
 
-            // Detección avanzada de caídas de red (WebRTC ICE State)
+            // Detección avanzada de caídas de red (WebRTC ICE State) con margen de gracia de 30s
             let iceTimeout = null;
             if (conn.peerConnection) {
                 conn.peerConnection.addEventListener('iceconnectionstatechange', () => {
@@ -1302,7 +1340,7 @@
                         console.warn("Mensaje JSON corrupto", e);
                     }
                 } else {
-                    // Corrección: Soporte mejorado para calcular los bytes recibidos sin NaN
+                    // Soporte de cálculo de bytes recibidos
                     const chunkLength = data.byteLength || data.size || data.length || 0;
                     incomingData.push(data); 
                     incomingBytes += chunkLength;
@@ -1329,7 +1367,7 @@
         function updateUIConnected() {
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
-            btn.classList.replace('bg-primary', 'bg-green-600');
+            btn.className = "bg-green-600 hover:bg-green-500 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(22,163,74,0.4)] active:scale-95 flex items-center justify-center shrink-0";
             document.getElementById('connection-status').classList.remove('hidden');
             document.getElementById('connection-status').classList.add('flex');
             
@@ -1342,7 +1380,7 @@
             clearInterval(keepAliveInterval);
             const btn = document.getElementById('btn-connect');
             btn.innerHTML = `<i data-lucide="link" class="w-5 h-5"></i>`;
-            btn.classList.replace('bg-green-600', 'bg-primary');
+            btn.className = "bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0";
             document.getElementById('connection-status').classList.add('hidden');
             document.getElementById('connection-status').classList.remove('flex');
             document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
@@ -1607,6 +1645,17 @@
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
+            // Incrementar y mostrar el badge de recibidos en la navegación inferior
+            const badgeNav = document.getElementById('badge-nav-receive');
+            if (badgeNav) badgeNav.classList.remove('hidden');
+
+            const badgeHeader = document.getElementById('badge-received');
+            if (badgeHeader) {
+                const currentCount = parseInt(badgeHeader.innerText) || 0;
+                badgeHeader.innerText = currentCount + 1;
+                badgeHeader.classList.remove('hidden');
+            }
+
             // Auto-descarga clásica solo si NO es iOS (para evitar spam en app "Archivos" de iPhone)
             if (!isIOS) {
                 const url = URL.createObjectURL(blob);
@@ -1617,7 +1666,7 @@
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
 
-        // Nueva función mágica que usa el sistema nativo de los celulares
+        // Función que usa la interfaz nativa del teléfono
         window.saveReceivedFile = async (fileId) => {
             const fileData = window.receivedBlobs[fileId];
             if (!fileData) return window.showToast("El archivo ya expiró", "error");
