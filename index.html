@@ -39,7 +39,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- tsParticles para o fundo de rede/intranet (configuración mejorada) -->
+    <!-- tsParticles para o fundo de rede/intranet -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.0.6/tsparticles.slim.bundle.min.js"></script>
     
     <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
@@ -106,7 +106,7 @@
         #qr-reader-shade { display: none !important; }
 
         /* =========================================
-           FUNDO DINÁMICO DE PARTÍCULAS (INTRANET) - MEJORADO
+           FUNDO DINÂMICO DE PARTÍCULAS (INTRANET)
            ========================================= */
         #dynamic-bg canvas {
             display: block;
@@ -126,7 +126,7 @@
         <span class="shrink-0 text-zinc-600 font-bold text-[8px] ml-2 animate-pulse">SYS.MONITOR</span>
     </div>
 
-    <!-- FUNDO DINÁMICO (PARTÍCULAS DE RED) - MEJORADO -->
+    <!-- FUNDO DINÂMICO (PARTÍCULAS DE REDE) -->
     <div id="dynamic-bg" class="fixed inset-0 z-[-1] pointer-events-none transition-opacity duration-700 opacity-100">
     </div>
 
@@ -395,8 +395,8 @@
                 <!-- Ajuste: Fondo Dinámico -->
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-bg-btn">
                     <div>
-                        <p class="font-semibold text-sm text-zinc-200">Fundo Dinámico</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">Animación de partículas de la red (mejorado)</p>
+                        <p class="font-semibold text-sm text-zinc-200">Fundo Dinâmico</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Animação de partículas da rede</p>
                     </div>
                     <div id="toggle-bg-ui" class="w-11 h-6 bg-primary rounded-full relative transition-colors duration-300">
                         <div id="toggle-bg-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-5"></div>
@@ -1886,50 +1886,22 @@
         }
         startCodeTimer();
 
-        // ==================================================
-        // 🚀 NUEVO FONDO DINÁMICO MEJORADO - NEURAL NETWORK
-        // ==================================================
+        // --- INICIALIZAÇÃO DAS PARTÍCULAS (TIPO INTRANET) ---
         tsParticles.load("dynamic-bg", {
             fpsLimit: 60,
             particles: {
-                number: { value: 100, density: { enable: true, value_area: 800 } },
-                color: { value: ["#0ea5e9", "#6366f1", "#ec4899"] },
-                shape: { type: ["circle", "triangle"] },
-                opacity: { value: 0.6, random: true, anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false } },
-                size: { value: { min: 1, max: 3 }, random: true, anim: { enable: true, speed: 2, size_min: 0.8, sync: false } },
-                links: {
-                    enable: true,
-                    distance: 150,
-                    color: { value: "#6366f1" },
-                    opacity: 0.4,
-                    width: 1,
-                    shadow: { enable: true, blur: 5, color: "#0ea5e9" }
-                },
-                move: {
-                    enable: true,
-                    speed: { min: 0.4, max: 1.2 },
-                    direction: "none",
-                    random: true,
-                    straight: false,
-                    outModes: { default: "out" },
-                    attract: { enable: true, rotateX: 600, rotateY: 600 },
-                    trail: { enable: false, length: 5, fillColor: "#09090b" }
-                },
-                shadow: { enable: true, blur: 8, color: "#0ea5e9", offset: { x: 0, y: 0 } }
+                number: { value: 60, density: { enable: true, value_area: 800 } },
+                color: { value: "#0ea5e9" },
+                links: { enable: true, color: "#6366f1", distance: 150, opacity: 0.3, width: 1 },
+                move: { enable: true, speed: 0.8, direction: "none", random: false, straight: false, outModes: { default: "out" } },
+                size: { value: 2, random: true },
+                opacity: { value: 0.5 }
             },
             interactivity: {
                 detectsOn: "window",
-                events: {
-                    onHover: { enable: true, mode: "grab" },
-                    onClick: { enable: false, mode: "push" },
-                    resize: true
-                },
-                modes: {
-                    grab: { distance: 180, links: { opacity: 0.8, color: "#ec4899" } },
-                    repulse: { distance: 100, duration: 0.4 }
-                }
+                events: { onHover: { enable: true, mode: "grab" }, resize: true },
+                modes: { grab: { distance: 140, links: { opacity: 0.8 } } }
             },
-            background: { color: "#09090b" },
             detectRetina: true
         });
 
