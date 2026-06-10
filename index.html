@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ECSend Pro">
     <meta name="theme-color" content="#09090b">
     <title>ECSend Pro - P2P Transfer (Local & Web)</title>
     <link rel="icon" type="image/png" href="https://64.media.tumblr.com/6f33c857b884c03137bf197c80459ae0/3976e3c8c7065a5c-90/s540x810/81339e8f5163072554c85570781953c6babc6acf.pnj">
@@ -42,9 +39,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- iOS Share Sheet Support -->
-    <meta name="format-detection" content="telephone=no">
-
+    <!-- tsParticles para o fundo de rede/intranet -->
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.0.6/tsparticles.slim.bundle.min.js"></script>
+    
     <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
@@ -52,32 +49,11 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: #09090b;
             color: #f4f4f5;
             -webkit-tap-highlight-color: transparent;
             touch-action: pan-y;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            overscroll-behavior-y: none;
-        }
-
-        /* iOS Safe Area Support */
-        .pt-safe { padding-top: env(safe-area-inset-top); }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-
-        /* Smooth scrolling para iOS */
-        .hide-scrollbar { 
-            -webkit-overflow-scrolling: touch;
-            -ms-overflow-style: none; 
-            scrollbar-width: none; 
-        }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* iOS Button Active States */
-        @media (hover: none) {
-            button:active, label:active { opacity: 0.7; }
         }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -130,17 +106,19 @@
         #qr-reader-shade { display: none !important; }
 
         /* =========================================
-           FONDO DINAMICO ANIMADO (LUCES NEON)
+           FUNDO DINÂMICO DE PARTÍCULAS (INTRANET)
            ========================================= */
-        /* Estilos para el canvas de partículas */
-        #particle-canvas { opacity: 0.6; }
+        #dynamic-bg canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
 
-    <!-- FONDO DINÁMICO: PARTÍCULAS INTRANET -->
-    <div id="dynamic-bg" class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none transition-opacity duration-700 opacity-100">
-        <canvas id="particle-canvas" class="absolute inset-0 w-full h-full"></canvas>
+    <!-- FUNDO DINÂMICO (PARTÍCULAS DE REDE) -->
+    <div id="dynamic-bg" class="fixed inset-0 z-[-1] pointer-events-none transition-opacity duration-700 opacity-100">
     </div>
 
     <!-- SPLASH SCREEN ESTALINGRADO -->
@@ -268,7 +246,7 @@
                         <span id="code-counter" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-mono transition-colors">0/6</span>
                     </label>
                     <div class="flex gap-2">
-                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600" autocomplete="off" autocorrect="off" autocapitalize="off">
+                        <input type="text" inputmode="numeric" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
                         <button onclick="window.startQRScanner()" id="btn-scan" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 rounded-xl transition-all shadow-[0_0_10px_rgba(255,255,255,0.05)] active:scale-95 flex items-center justify-center shrink-0 border border-white/5" title="Escanear QR con la cámara">
                             <i data-lucide="scan" class="w-5 h-5"></i>
                         </button>
@@ -325,10 +303,6 @@
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
 
             <!-- Botón Enviar Principal Movido Arriba -->
-            <div class="flex items-center justify-between mb-2 px-1">
-                <span class="text-[10px] text-zinc-500 font-medium">Máximo 5 archivos por envío</span>
-                <span id="file-count-badge" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-mono">0/5</span>
-            </div>
             <button onclick="window.sendSelectedFiles()" id="btn-send" class="w-full py-4 mb-6 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed" disabled>
                 <i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos
             </button>
@@ -341,27 +315,27 @@
                 </div>
                 
                 <!-- Inputs ocultos separados por tipo -->
-                <input type="file" id="file-input-gallery" accept="image/*,video/*,audio/*" class="hidden" multiple capture="environment">
-                <input type="file" id="file-input-docs" accept="*/*" class="hidden" multiple>
+                <input type="file" id="file-input-gallery" accept="image/*,video/*" class="hidden" multiple>
+                <input type="file" id="file-input-docs" class="hidden" multiple>
                 
                 <div id="drop-zone" class="grid grid-cols-2 gap-3 transition-all">
-                    <!-- Botón Galería iPhone Compatible -->
-                    <label for="file-input-gallery" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px] active:scale-95 transition-transform">
+                    <!-- Botón Galería -->
+                    <div onclick="document.getElementById('file-input-gallery').click()" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px]">
                         <div class="p-2.5 bg-zinc-800 group-hover:bg-primary/20 rounded-full mb-2 transition-colors">
                             <i data-lucide="image" class="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors"></i>
                         </div>
                         <p class="text-[13px] font-semibold text-zinc-300">Galería</p>
                         <p class="text-[10px] text-zinc-500 mt-0.5">Fotos y Videos</p>
-                    </label>
+                    </div>
 
-                    <!-- Botón Archivos iPhone Compatible -->
-                    <label for="file-input-docs" class="border-2 border-dashed border-zinc-700 hover:border-secondary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px] active:scale-95 transition-transform">
+                    <!-- Botón Archivos -->
+                    <div onclick="document.getElementById('file-input-docs').click()" class="border-2 border-dashed border-zinc-700 hover:border-secondary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px]">
                         <div class="p-2.5 bg-zinc-800 group-hover:bg-secondary/20 rounded-full mb-2 transition-colors">
                             <i data-lucide="folder" class="w-6 h-6 text-zinc-400 group-hover:text-secondary transition-colors"></i>
                         </div>
                         <p class="text-[13px] font-semibold text-zinc-300">Archivos</p>
                         <p class="text-[10px] text-zinc-500 mt-0.5">Docs y contactos</p>
-                    </label>
+                    </div>
                 </div>
 
                 <ul id="list-selected" class="mt-4 space-y-2 max-h-60 overflow-y-auto hide-scrollbar"></ul>
@@ -403,8 +377,8 @@
                 <!-- Ajuste: Fondo Dinámico -->
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-bg-btn">
                     <div>
-                        <p class="font-semibold text-sm text-zinc-200">Fondo Dinámico</p>
-                        <p class="text-xs text-zinc-500 mt-0.5">Animación de luces de fondo</p>
+                        <p class="font-semibold text-sm text-zinc-200">Fundo Dinâmico</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Animação de partículas da rede</p>
                     </div>
                     <div id="toggle-bg-ui" class="w-11 h-6 bg-primary rounded-full relative transition-colors duration-300">
                         <div id="toggle-bg-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-5"></div>
@@ -625,12 +599,11 @@
     </div>
 
     <!-- MODAL PROCESANDO ARCHIVOS -->
-    <div id="modal-file-loading" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-opacity" style="-webkit-transform: translateZ(0);">
+    <div id="modal-file-loading" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-8 rounded-3xl flex flex-col items-center border border-white/10 shadow-2xl animate-pulse text-center">
-            <i data-lucide="loader-2" class="w-12 h-12 text-primary animate-spin mb-4" style="-webkit-transform: translateZ(0);"></i>
+            <i data-lucide="loader-2" class="w-12 h-12 text-primary animate-spin mb-4"></i>
             <h3 class="text-lg font-bold text-white tracking-wide">Procesando Archivos...</h3>
             <p class="text-xs text-zinc-400 mt-2 max-w-[200px]">Por favor espera, no cierres la aplicación.</p>
-            <p class="text-[10px] text-zinc-500 mt-2">iOS: Las fotos HEIC se convierten automáticamente</p>
         </div>
     </div>
 
@@ -693,90 +666,6 @@
 
     <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
     <script>
-
-        // --- SISTEMA DE PARTÍCULAS INTRANET ---
-        (function() {
-            const canvas = document.getElementById('particle-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            let particles = [];
-            let animationId = null;
-            let w, h;
-
-            function resize() {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-            }
-            resize();
-            window.addEventListener('resize', resize);
-
-            class Particle {
-                constructor() {
-                    this.x = Math.random() * w;
-                    this.y = Math.random() * h;
-                    this.vx = (Math.random() - 0.5) * 0.5;
-                    this.vy = (Math.random() - 0.5) * 0.5;
-                    this.size = Math.random() * 2 + 1;
-                    this.color = Math.random() > 0.5 ? 'rgba(14, 165, 233,' : 'rgba(99, 102, 241,';
-                    this.opacity = Math.random() * 0.5 + 0.2;
-                    this.speed = Math.random() * 0.5 + 0.2;
-                }
-                update() {
-                    this.x += this.vx * this.speed;
-                    this.y += this.vy * this.speed;
-                    if (this.x < 0 || this.x > w) this.vx *= -1;
-                    if (this.y < 0 || this.y > h) this.vy *= -1;
-                }
-                draw() {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                    ctx.fillStyle = this.color + this.opacity + ')';
-                    ctx.fill();
-                }
-            }
-
-            function initParticles() {
-                particles = [];
-                const count = Math.min(80, Math.floor((w * h) / 15000));
-                for (let i = 0; i < count; i++) particles.push(new Particle());
-            }
-            initParticles();
-
-            function drawConnections() {
-                for (let i = 0; i < particles.length; i++) {
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < 120) {
-                            ctx.beginPath();
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.strokeStyle = 'rgba(14, 165, 233, ' + (0.15 * (1 - dist / 120)) + ')';
-                            ctx.lineWidth = 0.5;
-                            ctx.stroke();
-                        }
-                    }
-                }
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, w, h);
-                particles.forEach(p => { p.update(); p.draw(); });
-                drawConnections();
-                animationId = requestAnimationFrame(animate);
-            }
-            animate();
-
-            // Pausar cuando no es visible para ahorrar batería
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    cancelAnimationFrame(animationId);
-                } else {
-                    animate();
-                }
-            });
-        })();
         // --- UI BÁSICA Y FUNCIONES EXPORTADAS ---
         window.switchView = function(targetView) {
             const views = ['start', 'receive', 'send', 'settings'];
@@ -1205,8 +1094,6 @@
 
         window.shareLink = () => {
             const link = window.location.href.split('?')[0] + '?connect=' + myRawCode;
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
             if (navigator.share) {
                 navigator.share({
                     title: 'ECSend Pro - Conexión Segura',
@@ -1214,15 +1101,6 @@
                     url: link
                 }).catch(err => {
                     console.log('Intercambio cancelado o no soportado.', err);
-                });
-            } else if (isIOS) {
-                // iOS fallback: copiar al portapapeles con instrucciones
-                navigator.clipboard.writeText(link).then(() => {
-                    window.showToast('Enlace copiado. Compártelo por iMessage o WhatsApp.', 'success');
-                }).catch(() => {
-                    const ta = document.createElement("textarea"); ta.value = link; document.body.appendChild(ta);
-                    ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-                    window.showToast('Enlace copiado. Compártelo por iMessage o WhatsApp.', 'success');
                 });
             } else {
                 navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado al portapapeles', 'success'))
@@ -1509,21 +1387,11 @@
         const handleFileSelect = (e) => {
             if(e.target.files.length) {
                 showFileLoading();
-                // iOS: procesar archivos con delay para evitar bloqueo del UI thread
+                // Usamos setTimeout para permitir que el modal se renderice antes de procesar archivos pesados
                 setTimeout(() => {
-                    const files = Array.from(e.target.files);
-                    // iOS HEIC/HEIF support: marcar archivos de iPhone
-                    const processedFiles = files.map(file => {
-                        if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
-                            // En iOS Safari, los HEIC a veces se convierten automáticamente a JPEG
-                            // pero mantenemos el nombre original para referencia
-                            return file;
-                        }
-                        return file;
-                    });
-                    addFiles(processedFiles);
+                    addFiles(Array.from(e.target.files));
                     e.target.value = '';
-                }, 150);
+                }, 100);
             } else {
                 e.target.value = '';
             }
@@ -1549,21 +1417,7 @@
         document.getElementById('file-input-docs').addEventListener('change', handleFileSelect);
 
         function addFiles(files) { 
-            const MAX_FILES = 5;
-            const remainingSlots = MAX_FILES - selectedFiles.length;
-
-            if (remainingSlots <= 0) {
-                hideFileLoading();
-                window.showToast('Máximo 5 archivos por envío. Envía estos primero.', 'error');
-                return;
-            }
-
-            const filesToAdd = files.slice(0, remainingSlots);
-            if (files.length > remainingSlots) {
-                window.showToast(`Solo se agregaron ${remainingSlots} de ${files.length} archivos (máx. 5).`, 'info');
-            }
-
-            selectedFiles = [...selectedFiles, ...filesToAdd]; 
+            selectedFiles = [...selectedFiles, ...files]; 
             renderFileList(); 
             hideFileLoading();
         }
@@ -1574,9 +1428,7 @@
         function renderFileList() {
             const list = document.getElementById('list-selected');
             const clearBtn = document.getElementById('btn-clear-files');
-            const countBadge = document.getElementById('file-count-badge');
             clearBtn.classList.toggle('hidden', selectedFiles.length === 0);
-            if (countBadge) countBadge.innerText = `${selectedFiles.length}/5`;
 
             let htmlString = '';
             selectedFiles.forEach((file, idx) => {
@@ -1943,6 +1795,25 @@
             startCodeTimer();
         }
         startCodeTimer();
+
+        // --- INICIALIZAÇÃO DAS PARTÍCULAS (TIPO INTRANET) ---
+        tsParticles.load("dynamic-bg", {
+            fpsLimit: 60,
+            particles: {
+                number: { value: 60, density: { enable: true, value_area: 800 } },
+                color: { value: "#0ea5e9" },
+                links: { enable: true, color: "#6366f1", distance: 150, opacity: 0.3, width: 1 },
+                move: { enable: true, speed: 0.8, direction: "none", random: false, straight: false, outModes: { default: "out" } },
+                size: { value: 2, random: true },
+                opacity: { value: 0.5 }
+            },
+            interactivity: {
+                detectsOn: "window",
+                events: { onHover: { enable: true, mode: "grab" }, resize: true },
+                modes: { grab: { distance: 140, links: { opacity: 0.8 } } }
+            },
+            detectRetina: true
+        });
     </script>
 </body>
 </html>
