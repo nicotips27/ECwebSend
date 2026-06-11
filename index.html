@@ -7,7 +7,6 @@
     <title>ECSend Pro - P2P Transfer (Local & Web)</title>
     <link rel="icon" type="image/png" href="https://64.media.tumblr.com/6f33c857b884c03137bf197c80459ae0/3976e3c8c7065a5c-90/s540x810/81339e8f5163072554c85570781953c6babc6acf.pnj">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -34,15 +33,12 @@
         }
     </script>
     
-    <!-- Icons & Tools -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
-    <!-- tsParticles para o fundo de rede/intranet -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.0.6/tsparticles.slim.bundle.min.js"></script>
     
-    <!-- PeerJS: Motor de conexión pública ideal para GitHub Pages -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <style>
@@ -117,7 +113,6 @@
 </head>
 <body class="h-[100dvh] w-full overflow-hidden flex flex-col select-none">
 
-    <!-- HUD DE METADATOS TIPO TERMINAL (DISCRETO ABAJO) -->
     <div id="metadata-hud" class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-primary/30 text-primary font-mono text-[10px] pt-1.5 pb-3 px-4 z-[15] transform translate-y-full transition-transform duration-300 flex items-center justify-between shadow-[0_-5px_15px_rgba(14,165,233,0.15)] pointer-events-none">
         <div class="flex items-center gap-2 overflow-hidden w-full">
             <i data-lucide="terminal" class="w-3 h-3 shrink-0"></i>
@@ -126,11 +121,9 @@
         <span class="shrink-0 text-zinc-600 font-bold text-[8px] ml-2 animate-pulse">SYS.MONITOR</span>
     </div>
 
-    <!-- FUNDO DINÂMICO (PARTÍCULAS DE REDE) -->
     <div id="dynamic-bg" class="fixed inset-0 z-[-1] pointer-events-none transition-opacity duration-700 opacity-100">
     </div>
 
-    <!-- SPLASH SCREEN ESTALINGRADO -->
     <div id="splash" class="fixed inset-0 z-[100] bg-dark flex flex-col items-center justify-center transition-opacity duration-700">
         <img src="https://64.media.tumblr.com/6f33c857b884c03137bf197c80459ae0/3976e3c8c7065a5c-90/s540x810/81339e8f5163072554c85570781953c6babc6acf.pnj" class="loader-logo" alt="Logo" loading="lazy">
         <p class="text-base tracking-[4px] text-white mb-1 uppercase font-medium">ESTALINGRADO CORP</p>
@@ -139,13 +132,10 @@
         <div id="loading-percent">0%</div>
     </div>
 
-    <!-- TOAST NOTIFICATIONS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 w-full max-w-sm px-4 pointer-events-none"></div>
 
-    <!-- HEADER -->
     <header class="glass-panel px-5 py-4 flex justify-between items-center z-[50] shrink-0 border-b border-white/5 relative">
         
-        <!-- CONTENEDOR LOGO Y MENÚ DESPLEGABLE -->
         <div class="relative z-[100]">
             <button onclick="window.toggleMainMenu(event)" class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity text-left outline-none">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden shrink-0">
@@ -163,7 +153,6 @@
                 </div>
             </button>
 
-            <!-- DROPDOWN MENU PRINCIPAL -->
             <div id="main-menu-dropdown" class="absolute top-full left-0 mt-4 w-72 max-w-[85vw] glass-panel bg-zinc-900/95 rounded-2xl border border-white/10 shadow-2xl hidden flex-col overflow-hidden animate-slide-up origin-top-left">
                 <div class="p-2 space-y-1">
                     <a href="https://nicotips27.github.io/Estalingrado-corp-Buscador-/" class="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-zinc-800/80 text-sm font-medium text-zinc-200 hover:text-white transition-colors">
@@ -201,13 +190,10 @@
         </div>
     </header>
 
-    <!-- MAIN VIEWS -->
     <main class="flex-1 overflow-hidden relative">
         
-        <!-- ================= INICIAR (CONEXIÓN) ================= -->
         <section id="view-start" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300">
             <div class="flex flex-col items-center justify-center pt-2 mb-6">
-                <!-- Radar & Phone Icon -->
                 <div class="relative w-32 h-32 flex items-center justify-center mb-6">
                     <div class="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]"></div>
                     <div class="absolute inset-4 border border-primary/30 rounded-full"></div>
@@ -217,7 +203,6 @@
                     </div>
                 </div>
 
-                <!-- Mi Código -->
                 <div class="text-center glass-panel p-5 rounded-3xl w-full max-w-sm mb-6 border border-white/10 shadow-lg">
                     <div class="flex justify-between items-center mb-2 px-1">
                         <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Código</p>
@@ -248,7 +233,6 @@
                     <p class="text-[11px] text-zinc-500 mt-4 leading-relaxed">Comparte este código, enlace o el QR para que otro dispositivo se conecte a ti.</p>
                 </div>
 
-                <!-- Conectar a otro -->
                 <div class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg relative overflow-hidden border border-white/10">
                     <label class="flex justify-between items-center text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
                         <span>Conectarse a dispositivo</span>
@@ -269,7 +253,6 @@
                     </div>
                 </div>
 
-                <!-- Historial -->
                 <div class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg border border-white/10 mt-6 mb-6">
                     <div class="flex items-center justify-between mb-3 px-1">
                         <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
@@ -285,7 +268,6 @@
             </div>
         </section>
 
-        <!-- ================= RECIBIR ================= -->
         <section id="view-receive" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Bandeja de Entrada</h2>
             <div class="w-full max-w-sm mx-auto">
@@ -307,16 +289,13 @@
             </div>
         </section>
 
-        <!-- ================= ENVIAR ================= -->
         <section id="view-send" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Enviar Archivos</h2>
 
-            <!-- Botón Enviar Principal Movido Arriba -->
             <button onclick="window.sendSelectedFiles()" id="btn-send" class="w-full py-4 mb-6 bg-zinc-800 text-zinc-500 rounded-2xl font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-not-allowed" disabled>
                 <i data-lucide="send" class="w-5 h-5"></i> Enviar Archivos
             </button>
 
-            <!-- Alerta Dispositivo Apple -->
             <div id="apple-warning" class="hidden mb-6 glass-panel rounded-2xl p-4 gap-3 border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 animate-slide-up">
                 <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-400 shrink-0"></i>
                 <div>
@@ -325,19 +304,16 @@
                 </div>
             </div>
 
-            <!-- Panel de Selección de Archivos -->
             <div class="glass-panel rounded-3xl p-5 shadow-lg flex flex-col mb-6 border border-white/10">
                 <div class="flex justify-between items-end mb-4">
                     <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-widest">Seleccionar Archivos</label>
                     <button onclick="window.clearSelection()" class="text-[10px] text-zinc-500 hover:text-red-400 transition-colors hidden" id="btn-clear-files">Limpiar Todo</button>
                 </div>
                 
-                <!-- Inputs ocultos separados por tipo -->
                 <input type="file" id="file-input-gallery" accept="image/*,video/*" class="hidden" multiple>
                 <input type="file" id="file-input-docs" class="hidden" multiple>
                 
                 <div id="drop-zone" class="grid grid-cols-2 gap-3 transition-all">
-                    <!-- Botón Galería -->
                     <div onclick="document.getElementById('file-input-gallery').click()" class="border-2 border-dashed border-zinc-700 hover:border-primary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px]">
                         <div class="p-2.5 bg-zinc-800 group-hover:bg-primary/20 rounded-full mb-2 transition-colors">
                             <i data-lucide="image" class="w-6 h-6 text-zinc-400 group-hover:text-primary transition-colors"></i>
@@ -346,7 +322,6 @@
                         <p class="text-[10px] text-zinc-500 mt-0.5">Fotos y Videos</p>
                     </div>
 
-                    <!-- Botón Archivos -->
                     <div onclick="document.getElementById('file-input-docs').click()" class="border-2 border-dashed border-zinc-700 hover:border-secondary/50 bg-zinc-900/50 hover:bg-zinc-800/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer group min-h-[120px]">
                         <div class="p-2.5 bg-zinc-800 group-hover:bg-secondary/20 rounded-full mb-2 transition-colors">
                             <i data-lucide="folder" class="w-6 h-6 text-zinc-400 group-hover:text-secondary transition-colors"></i>
@@ -360,18 +335,15 @@
             </div>
         </section>
 
-        <!-- ================= AJUSTES ================= -->
         <section id="view-settings" class="absolute inset-0 overflow-y-auto hide-scrollbar p-5 pb-28 transition-transform duration-300 translate-x-full">
             <h2 class="text-2xl font-bold mb-6 mt-2 text-white">Configuración</h2>
             <div class="space-y-4">
                 
-                <!-- Ajuste: Perfil -->
                 <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
                     <label class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Nombre en la Red</label>
                     <input type="text" id="setting-username" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all font-medium" placeholder="Ej: Celular de Nico">
                 </div>
 
-                <!-- Ajuste: Modo de Red -->
                 <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
                     <label class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Modo de Conexión</label>
                     <select id="setting-network" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
@@ -381,7 +353,6 @@
                     <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">El modo Local fuerza la transferencia por tu router (LAN) por privacidad, pero requiere que ambos estén en la misma red Wi-Fi.</p>
                 </div>
 
-                <!-- Ajuste: Sonidos -->
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-sound-btn">
                     <div>
                         <p class="font-semibold text-sm text-zinc-200">Alertas de Sonido</p>
@@ -392,7 +363,6 @@
                     </div>
                 </div>
 
-                <!-- Ajuste: Fondo Dinámico -->
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-bg-btn">
                     <div>
                         <p class="font-semibold text-sm text-zinc-200">Fundo Dinâmico</p>
@@ -403,7 +373,6 @@
                     </div>
                 </div>
 
-                <!-- Ajuste: ECEncripP2P -->
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-encrip-btn">
                     <div>
                         <p class="font-semibold text-sm text-zinc-200">ECEncripP2P</p>
@@ -414,7 +383,6 @@
                     </div>
                 </div>
 
-                <!-- Ajuste: Borrar Datos -->
                 <div class="glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-red-500/20 bg-red-500/5">
                     <div>
                         <p class="font-semibold text-sm text-red-400">Borrar Datos Locales</p>
@@ -425,7 +393,6 @@
                     </button>
                 </div>
 
-                <!-- Sobre este programa -->
                 <div class="glass-panel rounded-3xl p-5 flex flex-col items-center text-center mt-6 border-t border-white/10 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
                     
@@ -447,7 +414,6 @@
                     </div>
                 </div>
 
-                <!-- Footer Legal -->
                 <div class="mt-8 mb-4 flex flex-col items-center justify-center text-center opacity-80">
                     <button onclick="window.togglePrivacyModal()" class="text-[11px] text-zinc-400 hover:text-primary transition-colors underline underline-offset-4 mb-3 flex items-center gap-1.5">
                         <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Política de Privacidad y Legal
@@ -460,7 +426,6 @@
         </section>
     </main>
 
-    <!-- BOTTOM NAV -->
     <nav class="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-panel rounded-2xl border border-white/10 overflow-hidden z-20">
         <ul class="flex">
             <li class="flex-1">
@@ -494,9 +459,6 @@
         </ul>
     </nav>
 
-    <!-- MODALES: AYUDA, QR GENERADOR, TRANSFERENCIA Y CHAT -->
-    
-    <!-- MODAL DE AYUDA -->
     <div id="modal-help" class="fixed inset-0 bg-dark/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.toggleHelpModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
@@ -541,7 +503,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE PRIVACIDAD Y LEGAL -->
     <div id="modal-privacy" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[90] hidden flex items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[340px] flex flex-col border border-white/10 shadow-2xl relative animate-slide-up max-h-[80vh] overflow-hidden">
             <button onclick="window.togglePrivacyModal()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-10">
@@ -579,7 +540,6 @@
         </div>
     </div>
 
-    <!-- MODAL: LECTOR DE CÓDIGO QR -->
     <div id="modal-scanner" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[80] hidden flex flex-col items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-6 rounded-3xl w-full max-w-[320px] flex flex-col items-center border border-white/10 shadow-2xl relative animate-slide-up">
             <button onclick="window.stopQRScanner()" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-[90]">
@@ -595,7 +555,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE TRANSFERENCIA -->
     <div id="modal-transfer" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[70] hidden flex flex-col items-center justify-center p-6">
         <div class="w-full max-w-sm flex flex-col items-center">
             <div id="transfer-icon-container" class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 animate-bounce">
@@ -619,7 +578,6 @@
         </div>
     </div>
 
-    <!-- MODAL PROCESANDO ARCHIVOS -->
     <div id="modal-file-loading" class="fixed inset-0 bg-dark/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-opacity">
         <div class="glass-panel p-8 rounded-3xl flex flex-col items-center border border-white/10 shadow-2xl animate-pulse text-center">
             <i data-lucide="loader-2" class="w-12 h-12 text-primary animate-spin mb-4"></i>
@@ -628,7 +586,6 @@
         </div>
     </div>
 
-    <!-- BOTON FLOTANTE CHAT Y MODAL REDISEÑADO "PRO" -->
     <button id="btn-floating-chat" onclick="window.toggleChat()" class="hidden fixed bottom-28 right-5 z-[50] w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-[0_0_20px_rgba(14,165,233,0.5)] flex items-center justify-center transition-all active:scale-95 border-2 border-dark">
         <i data-lucide="message-circle" class="w-6 h-6"></i>
         <span id="chat-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden border-2 border-dark shadow-md">0</span>
@@ -637,7 +594,6 @@
     <div id="modal-chat" class="fixed inset-0 bg-dark/80 backdrop-blur-xl z-[80] hidden flex flex-col transition-opacity">
         <div class="w-full max-w-md mx-auto h-full flex flex-col relative bg-zinc-950 shadow-2xl border-x border-white/5">
             
-            <!-- Header Chat Pro -->
             <div class="px-4 py-3 border-b border-white/10 flex justify-between items-center bg-zinc-900/90 backdrop-blur-md sticky top-0 z-10 pt-safe shadow-md">
                 <div class="flex items-center gap-3">
                     <button onclick="window.toggleChat()" class="text-zinc-400 hover:text-white p-2 -ml-2 transition-colors rounded-full active:scale-95">
@@ -659,7 +615,6 @@
                 </button>
             </div>
             
-            <!-- Messages Area (Grid Background) -->
             <div id="chat-messages" class="flex-1 overflow-y-auto hide-scrollbar p-4 space-y-3 flex flex-col pb-4 relative" style="background-image: radial-gradient(circle at center, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 20px 20px;">
                 <div class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-4">
                     <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-4 shadow-lg border border-white/5">
@@ -670,7 +625,6 @@
                 </div>
             </div>
 
-            <!-- Input Area Pro -->
             <div class="p-4 bg-gradient-to-t from-zinc-950 via-zinc-950 to-transparent pb-8">
                 <div class="flex items-end gap-2 bg-zinc-900 border border-white/10 rounded-3xl p-1.5 shadow-lg focus-within:border-primary/50 focus-within:shadow-[0_0_15px_rgba(14,165,233,0.15)] transition-all">
                     <button class="p-2.5 text-zinc-400 hover:text-primary transition-colors shrink-0 rounded-full active:scale-95">
@@ -685,7 +639,6 @@
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL: INTERFAZ Y PEERJS -->
     <script>
         // --- UI BÁSICA Y FUNCIONES EXPORTADAS ---
         window.switchView = function(targetView) {
@@ -914,7 +867,7 @@
                 btn.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4"></i> ¿Estás seguro? Toca de nuevo`;
                 if (window.lucide) window.lucide.createIcons();
                 btn.classList.replace('bg-red-500/10', 'bg-red-500');
-                btn.classList.replace('text-red-400', 'text-white');
+                btn.classList.replace('text-white', 'text-red-400');
                 
                 clearTimeout(clearConfirmTimeout);
                 clearConfirmTimeout = setTimeout(() => {
@@ -1344,10 +1297,27 @@
                             return;
                         }
 
+                        // --- NUEVO: ESCUCHAR SI EL DESTINATARIO RECHAZÓ ---
+                        if (msg.type === 'transfer-rejected') {
+                            window.showToast('El destinatario rechazó la transferencia.', 'error');
+                            window.closeTransferModal();
+                            window.clearSelection(); // Vacía la cola del emisor
+                            return;
+                        }
+
                         if (msg.type === 'header') {
-                            incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
-                            
+                            // --- NUEVO: SISTEMA DE CONFIRMACIÓN DE SEGURIDAD ---
                             if (msg.batchCurrentIndex === 1) {
+                                const totalMB = (msg.batchTotalSize / (1024 * 1024)).toFixed(2);
+                                const confirmMsg = `⚠️ Petición entrante de seguridad:\n\n¿Deseas recibir ${msg.batchTotalFiles} archivo(s) con un total de ${totalMB} MB?`;
+                                
+                                if (!window.confirm(confirmMsg)) {
+                                    window.transferRejected = true;
+                                    activeConnection.send(JSON.stringify({ type: 'transfer-rejected' }));
+                                    return;
+                                }
+                                window.transferRejected = false;
+                                
                                 window.batchBytesReceived = 0;
                                 openTransferModal(
                                     msg.batchTotalFiles > 1 ? `Recibiendo ${msg.batchTotalFiles} archivos...` : msg.name, 
@@ -1355,9 +1325,16 @@
                                     'receive'
                                 );
                             } else {
+                                if (window.transferRejected) return; // Ignorar el resto del lote si se rechazó
                                 document.getElementById('transfer-filename').innerText = `Recibiendo archivo ${msg.batchCurrentIndex} de ${msg.batchTotalFiles}...`;
                             }
+
+                            incomingFileInfo = msg; incomingData = []; incomingBytes = 0;
+                            // --- FIN NUEVO SISTEMA ---
+                            
                         } else if (msg.type === 'eof') {
+                            if (window.transferRejected) return; // <-- NUEVA LÍNEA: Abortar si fue rechazado
+                            
                             try { activeConnection.send(JSON.stringify({ type: 'eof-ack' })); } catch(e){}
                             processIncomingFile();
                             
@@ -1383,6 +1360,9 @@
                         console.warn("Mensaje JSON corrupto", e);
                     }
                 } else {
+                    // --- NUEVO: BLOQUEAR RECEPCIÓN BINARIA SI FUE RECHAZADA ---
+                    if (window.transferRejected) return; 
+
                     // Corrección: Soporte mejorado para calcular los bytes recibidos sin NaN
                     const chunkLength = data.byteLength || data.size || data.length || 0;
                     incomingData.push(data); 
