@@ -1081,13 +1081,31 @@
             });
         }
 
+        function fallbackCopy(text, successMsg) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+                window.showToast(successMsg, 'success');
+            } catch (err) {
+                window.showToast('Error al copiar', 'error');
+            }
+            document.body.removeChild(ta);
+        }
+
         window.copyMyCode = () => {
-            navigator.clipboard.writeText(myRawCode).then(() => window.showToast('Código copiado', 'success'))
-            .catch(() => {
-                const ta = document.createElement("textarea"); ta.value = myRawCode; document.body.appendChild(ta);
-                ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-                window.showToast('Código copiado', 'success');
-            });
+            const text = myRawCode;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => window.showToast('Código copiado', 'success'))
+                .catch(() => fallbackCopy(text, 'Código copiado'));
+            } else {
+                fallbackCopy(text, 'Código copiado');
+            }
         };
 
         window.shareLink = () => {
@@ -1098,15 +1116,16 @@
                     text: '¡Conéctate conmigo en ECSend Pro para transferir archivos!',
                     url: link
                 }).catch(err => {
-                    console.log('Intercambio cancelado o no soportado.', err);
+                    console.log('Intercambio cancelado o no soportado. Usando portapapeles de respaldo.', err);
+                    fallbackCopy(link, 'Enlace copiado al portapapeles');
                 });
             } else {
-                navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado al portapapeles', 'success'))
-                .catch(() => {
-                    const ta = document.createElement("textarea"); ta.value = link; document.body.appendChild(ta);
-                    ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-                    window.showToast('Enlace copiado al portapapeles', 'success');
-                });
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado al portapapeles', 'success'))
+                    .catch(() => fallbackCopy(link, 'Enlace copiado al portapapeles'));
+                } else {
+                    fallbackCopy(link, 'Enlace copiado al portapapeles');
+                }
             }
         };
 
