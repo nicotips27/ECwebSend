@@ -1110,22 +1110,12 @@
 
         window.shareLink = () => {
             const link = window.location.href.split('?')[0] + '?connect=' + myRawCode;
-            if (navigator.share) {
-                navigator.share({
-                    title: 'ECSend Pro - Conexión Segura',
-                    text: '¡Conéctate conmigo en ECSend Pro para transferir archivos!',
-                    url: link
-                }).catch(err => {
-                    console.log('Intercambio cancelado o no soportado. Usando portapapeles de respaldo.', err);
-                    fallbackCopy(link, 'Enlace copiado al portapapeles');
-                });
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado listo para pegar', 'success'))
+                .catch(() => fallbackCopy(link, 'Enlace copiado listo para pegar'));
             } else {
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(link).then(() => window.showToast('Enlace copiado al portapapeles', 'success'))
-                    .catch(() => fallbackCopy(link, 'Enlace copiado al portapapeles'));
-                } else {
-                    fallbackCopy(link, 'Enlace copiado al portapapeles');
-                }
+                fallbackCopy(link, 'Enlace copiado listo para pegar');
             }
         };
 
