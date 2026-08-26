@@ -264,6 +264,20 @@
                     </div>
                 </div>
 
+                <div id="nearby-panel" class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg border border-white/10 mt-6 mb-6 hidden">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
+                            <i data-lucide="wifi" class="w-4 h-4 text-primary"></i> En tu misma red
+                        </h3>
+                        <span id="nearby-count" class="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-md font-mono hidden">0</span>
+                    </div>
+                    <ul id="list-nearby" class="space-y-2"></ul>
+                    <div id="nearby-status" class="py-5 text-center text-zinc-600">
+                        <i data-lucide="radar" class="w-7 h-7 mb-2 mx-auto opacity-40 animate-pulse"></i>
+                        <p class="text-xs">Buscando dispositivos en tu Wi-Fi...</p>
+                    </div>
+                </div>
+
                 <div class="glass-panel p-5 rounded-3xl w-full max-w-sm shadow-lg border border-white/10 mt-6 mb-6">
                     <div class="flex items-center justify-between mb-3 px-1">
                         <h3 class="text-sm font-bold text-zinc-300 flex items-center gap-2">
@@ -352,7 +366,13 @@
                 
                 <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
                     <label class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Mi Nombre en la Red</label>
-                    <input type="text" id="setting-username" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all font-medium" placeholder="Ej: Celular de Nico">
+                    <div class="flex gap-2">
+                        <input type="text" id="setting-username" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary transition-all font-medium" placeholder="Ej: Celular de Nico">
+                        <button onclick="window.regenerateName()" title="Generar nombre aleatorio" class="bg-zinc-800 hover:bg-zinc-700 text-primary px-4 rounded-xl border border-white/5 active:scale-95 transition-all shrink-0 flex items-center justify-center">
+                            <i data-lucide="dices" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-zinc-500 leading-relaxed">Toca el dado para un nombre aleatorio estilo LocalSend.</p>
                 </div>
 
                 <div class="glass-panel rounded-2xl p-4 flex flex-col gap-2">
@@ -362,6 +382,16 @@
                         <option value="local">🏠 Modo Estricto Local (Solo Wi-Fi)</option>
                     </select>
                     <p class="text-[10px] text-zinc-500 mt-1 leading-relaxed">El modo Local fuerza la transferencia por tu router (LAN) por privacidad, pero requiere que ambos estén en la misma red Wi-Fi.</p>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-disc-btn">
+                    <div>
+                        <p class="font-semibold text-sm text-zinc-200">Descubrimiento en la red</p>
+                        <p class="text-xs text-zinc-500 mt-0.5">Ver dispositivos con tu mismo Wi-Fi y conectar con un toque</p>
+                    </div>
+                    <div id="toggle-disc-ui" class="w-11 h-6 bg-zinc-700 rounded-full relative transition-colors duration-300">
+                        <div id="toggle-disc-circle" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 transform translate-x-0"></div>
+                    </div>
                 </div>
 
                 <div class="glass-panel rounded-2xl p-4 flex items-center justify-between cursor-pointer" id="toggle-sound-btn">

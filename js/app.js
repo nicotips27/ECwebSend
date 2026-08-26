@@ -169,15 +169,35 @@
         };
 
         // --- SISTEMA DE CONFIGURACIONES ---
+        const NAME_ADJECTIVES = ['Rápido', 'Valiente', 'Sereno', 'Cobalto', 'Turquesa', 'Carmesí', 'Ágil', 'Audaz', 'Brillante', 'Dorado', 'Fugaz', 'Gigante', 'Luminoso', 'Místico', 'Nómade', 'Orbital', 'Platino', 'Radiante', 'Sigiloso', 'Tenaz', 'Vibrante', 'Zen', 'Eléctrico', 'Cósmico', 'Solar', 'Lunar', 'Veloz', 'Noble'];
+        const NAME_ANIMALS = ['Tigre', 'Zorro', 'Halcón', 'Lobo', 'Panda', 'Koala', 'Cóndor', 'Puma', 'Jaguar', 'Lince', 'Nutria', 'Búho', 'Colibrí', 'Tucán', 'Flamenco', 'Delfín', 'Orca', 'Pulpo', 'Tortuga', 'Iguana', 'Vicuña', 'Guanaco', 'Tapir', 'Fénix', 'Dragón', 'León', 'Águila', 'Carpincho'];
+        const AVATAR_EMOJIS = ['🦊', '🐯', '🐼', '🐨', '🦉', '🐬', '🦄', '🐙', '🦖', '🦋', '🐺', '🦁', '🐸', '🦅', '🐢', '🦜'];
+
+        const hashCode = (str) => {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) h = ((h * 31) + str.charCodeAt(i)) | 0;
+            return Math.abs(h);
+        };
+
+        const emojiForName = (name) => AVATAR_EMOJIS[hashCode(name || '') % AVATAR_EMOJIS.length];
+
+        const generateDeviceName = () => NAME_ADJECTIVES[Math.floor(Math.random() * NAME_ADJECTIVES.length)] + ' ' + NAME_ANIMALS[Math.floor(Math.random() * NAME_ANIMALS.length)];
+
         let appSettings = JSON.parse(localStorage.getItem('ecsend_settings')) || { 
-            username: 'Dispositivo_' + Math.floor(Math.random()*1000), 
+            username: generateDeviceName(), 
             network: 'global', 
             sounds: true,
             dynamicBg: true,
-            ecEncripP2P: false
+            ecEncripP2P: false,
+            discovery: true
         };
         if (typeof appSettings.dynamicBg === 'undefined') appSettings.dynamicBg = true;
         if (typeof appSettings.ecEncripP2P === 'undefined') appSettings.ecEncripP2P = false;
+        if (typeof appSettings.discovery === 'undefined') appSettings.discovery = true;
+        if (!appSettings.username || /^Dispositivo_\d{0,3}$/.test(appSettings.username)) {
+            appSettings.username = generateDeviceName();
+            localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
+        }
 
         let transferHistory = JSON.parse(localStorage.getItem('ecsend_history')) || [];
 
@@ -365,14 +385,39 @@
                     encripCircle.classList.remove('translate-x-5');
                 }
             }
+
+            const discUi = document.getElementById('toggle-disc-ui');
+            const discCircle = document.getElementById('toggle-disc-circle');
+            if (discUi && discCircle) {
+                if (appSettings.discovery) {
+                    discUi.classList.replace('bg-zinc-700', 'bg-primary');
+                    discCircle.classList.add('translate-x-5');
+                } else {
+                    discUi.classList.replace('bg-primary', 'bg-zinc-700');
+                    discCircle.classList.remove('translate-x-5');
+                }
+            }
         }
         updateUIStates();
 
         document.getElementById('setting-username').addEventListener('change', (e) => {
-            appSettings.username = e.target.value.trim() || 'Dispositivo';
+            appSettings.username = e.target.value.trim() || generateDeviceName();
             localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
             window.showToast('Nombre actualizado', 'success');
+            if (window.__sendPresence) {
+                try { window.__sendPresence(presencePayload()); } catch (err) {}
+            }
         });
+
+        window.regenerateName = () => {
+            appSettings.username = generateDeviceName();
+            localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
+            document.getElementById('setting-username').value = appSettings.username;
+            window.showToast('Nuevo nombre: ' + appSettings.username + ' ' + emojiForName(appSettings.username), 'success');
+            if (window.__sendPresence) {
+                try { window.__sendPresence(presencePayload()); } catch (err) {}
+            }
+        };
         document.getElementById('setting-network').addEventListener('change', (e) => {
             appSettings.network = e.target.value;
             localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
@@ -405,6 +450,22 @@
                     window.showToast('ECEncripP2P Activado', 'success');
                 } else {
                     window.showToast('ECEncripP2P Desactivado', 'info');
+                }
+            });
+        }
+
+        const toggleDiscBtn = document.getElementById('toggle-disc-btn');
+        if (toggleDiscBtn) {
+            toggleDiscBtn.addEventListener('click', () => {
+                appSettings.discovery = !appSettings.discovery;
+                localStorage.setItem('ecsend_settings', JSON.stringify(appSettings));
+                updateUIStates();
+                if (appSettings.discovery) {
+                    window.showToast('Descubrimiento activado', 'success');
+                    initDiscovery();
+                } else {
+                    stopDiscovery();
+                    window.showToast('Descubrimiento desactivado', 'info');
                 }
             });
         }
@@ -551,6 +612,7 @@
             }
         }
         setTimeout(initPeer, 800);
+        setTimeout(initDiscovery, 1200);
 
         // NUEVO: Detección cuando el usuario vuelve de WhatsApp a la pestaña
         document.addEventListener('visibilitychange', () => {
@@ -579,17 +641,25 @@
             const codeVal = input.value.trim().replace(/-/g, '');
             if (codeVal.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
             if (codeVal === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
+            connectToPeerId(PREFIX + codeVal);
+        };
+
+        window.connectToPeerId = (targetPeerId) => {
+            if (!peer) return window.showToast('Servidor no disponible', 'error');
+            if (targetPeerId === myPeerId) return;
+            if (activeConnection && activeConnection.open) return window.showToast('Ya hay una conexión activa. Desconectá primero.', 'info');
 
             window.updateProBadge('connecting');
             window.showToast('Estableciendo conexión P2P...', 'info');
 
             const btn = document.getElementById('btn-connect');
+            const input = document.getElementById('target-code');
             btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>`;
             btn.disabled = true;
             input.disabled = true;
             if (window.lucide) window.lucide.createIcons();
 
-            const conn = peer.connect(PREFIX + codeVal, { reliable: true });
+            const conn = peer.connect(targetPeerId, { reliable: true });
             
             // Timeout de aviso si tarda demasiado
             const connectionTimeout = setTimeout(() => {
@@ -616,6 +686,148 @@
                 try { conn.send(JSON.stringify({ type: 'handshake', username: appSettings.username, isApple: /iPad|iPhone|iPod|Mac/i.test(navigator.userAgent) })); } catch(e){}
             });
         };
+
+        // --- DESCUBRIMIENTO EN LA MISMA RED (ESTILO LOCALSEND) ---
+        const nearbyDevices = new Map();
+        let discoveryRoom = null;
+        let discoveryStarted = false;
+        const NEARBY_TTL = 90 * 1000;
+        const PRESENCE_INTERVAL = 30 * 1000;
+
+        const presencePayload = () => ({ pid: myPeerId, name: appSettings.username, emoji: emojiForName(appSettings.username) });
+
+        function pruneNearby() {
+            const now = Date.now();
+            let changed = false;
+            for (const [key, device] of nearbyDevices) {
+                if (now - device.ts > NEARBY_TTL) {
+                    nearbyDevices.delete(key);
+                    changed = true;
+                }
+            }
+            if (changed) renderNearby();
+        }
+
+        function renderNearby() {
+            const panel = document.getElementById('nearby-panel');
+            if (!panel) return;
+            if (!appSettings.discovery) {
+                panel.classList.add('hidden');
+                return;
+            }
+            panel.classList.remove('hidden');
+            const list = document.getElementById('list-nearby');
+            const status = document.getElementById('nearby-status');
+            const count = document.getElementById('nearby-count');
+            const devices = [...nearbyDevices.values()].filter((d) => d.pid !== myPeerId);
+
+            if (!discoveryRoom) {
+                status.innerHTML = `<i data-lucide="wifi-off" class="w-7 h-7 mb-2 mx-auto opacity-40"></i><p class="text-xs">Descubrimiento no disponible en esta red</p>`;
+                status.classList.remove('hidden');
+                list.innerHTML = '';
+                count.classList.add('hidden');
+            } else if (devices.length === 0) {
+                status.innerHTML = `<i data-lucide="radar" class="w-7 h-7 mb-2 mx-auto opacity-40 animate-pulse"></i><p class="text-xs">Buscando dispositivos en tu Wi-Fi...</p>`;
+                status.classList.remove('hidden');
+                count.classList.add('hidden');
+            } else {
+                status.classList.add('hidden');
+                count.innerText = devices.length;
+                count.classList.remove('hidden');
+                list.innerHTML = devices.map((d) => `
+                    <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-900/50 border border-white/5">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-9 h-9 rounded-lg bg-primary/10 border border-white/5 flex items-center justify-center text-lg shrink-0">${d.emoji}</div>
+                            <div class="truncate">
+                                <p class="text-[13px] font-medium text-zinc-200 truncate">${escapeHTML(d.name || 'Dispositivo')}</p>
+                                <p class="text-[10px] text-green-400">● Disponible en tu red</p>
+                            </div>
+                        </div>
+                        <button data-pid="${escapeHTML(d.pid)}" class="btn-nearby-connect p-2 text-primary bg-primary/10 rounded-lg active:scale-95 transition-transform shrink-0" title="Conectar ahora"><i data-lucide="zap" class="w-4 h-4"></i></button>
+                    </li>`).join('');
+            }
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        function stopDiscovery() {
+            nearbyDevices.clear();
+            renderNearby();
+            if (discoveryRoom) {
+                try { discoveryRoom.leave(); } catch (err) {}
+                discoveryRoom = null;
+                discoveryStarted = false;
+            }
+        }
+
+        async function initDiscovery() {
+            if (!appSettings.discovery || discoveryStarted) return;
+            discoveryStarted = true;
+            try {
+                const res = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+                const data = await res.json();
+                const octets = String(data.ip || '').split('.');
+                if (octets.length !== 4) throw new Error('IP pública no válida');
+                const netKey = octets.slice(0, 3).join('.');
+
+                const trystero = await import('https://cdn.jsdelivr.net/npm/trystero@0.25.3/+esm');
+                if (!appSettings.discovery) return;
+
+                discoveryRoom = trystero.joinRoom({ appId: 'ecsend-estalingrado' }, 'ecsend-net-' + netKey);
+                const presence = discoveryRoom.makeAction('presence');
+                window.__sendPresence = (payload, target) => {
+                    try {
+                        const result = target ? presence.send(payload, { target }) : presence.send(payload);
+                        if (result && typeof result.catch === 'function') result.catch(() => {});
+                    } catch (err) {}
+                };
+
+                discoveryRoom.onPeerJoin = (trysteroPeerId) => {
+                    window.__sendPresence(presencePayload(), trysteroPeerId);
+                    renderNearby();
+                };
+
+                discoveryRoom.onPeerLeave = (trysteroPeerId) => {
+                    nearbyDevices.delete(trysteroPeerId);
+                    renderNearby();
+                };
+
+                presence.onMessage = (payload, meta) => {
+                    const trysteroPeerId = meta && meta.peerId;
+                    if (!payload || !payload.pid || payload.pid === myPeerId || !trysteroPeerId) return;
+                    nearbyDevices.set(trysteroPeerId, {
+                        pid: String(payload.pid),
+                        name: String(payload.name || 'Dispositivo').slice(0, 40),
+                        emoji: AVATAR_EMOJIS.includes(payload.emoji) ? payload.emoji : emojiForName(payload.name),
+                        ts: Date.now()
+                    });
+                    window.__sendPresence(presencePayload(), trysteroPeerId);
+                    renderNearby();
+                };
+
+                setInterval(() => {
+                    if (!discoveryRoom) return;
+                    window.__sendPresence(presencePayload());
+                    pruneNearby();
+                }, PRESENCE_INTERVAL);
+
+                window.__sendPresence(presencePayload());
+                renderNearby();
+            } catch (err) {
+                console.warn('Descubrimiento no disponible:', err);
+                discoveryRoom = null;
+                renderNearby();
+            }
+        }
+
+        const nearbyList = document.getElementById('list-nearby');
+        if (nearbyList) {
+            nearbyList.addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-nearby-connect');
+                if (!btn) return;
+                const pid = btn.getAttribute('data-pid');
+                if (pid) window.connectToPeerId(pid);
+            });
+        }
 
         // --- SISTEMA WEBRTC CORE CORREGIDO ---
         let incomingFileInfo = null, incomingData = [], incomingBytes = 0;
@@ -979,10 +1191,12 @@
                 batchCurrentIndex: window.batchCurrentIndex
             }));
 
-            const CHUNK_SIZE = 64 * 1024;
-            const BUFFER_HIGH_WATER = 4 * 1024 * 1024;
+            const CHUNK_MIN = 64 * 1024;
+            const CHUNK_MAX = 256 * 1024;
+            const BUFFER_HIGH_WATER = 8 * 1024 * 1024;
             const BUFFER_LOW_WATER = 1 * 1024 * 1024;
             const dc = activeConnection.dataChannel;
+            let chunkSize = CHUNK_MIN;
 
             const waitForBufferDrain = (onResume) => {
                 if (dc && typeof dc.bufferedAmountLowThreshold !== 'undefined' && typeof dc.addEventListener === 'function') {
@@ -1003,37 +1217,39 @@
             };
 
             let offset = 0;
-            const reader = new FileReader();
 
-            const pump = () => {
+            const pump = async () => {
                 if (window.transferCancelled) return;
                 if (!activeConnection || !activeConnection.open) return;
                 if (dc && dc.bufferedAmount > BUFFER_HIGH_WATER) {
                     waitForBufferDrain(pump);
                     return;
                 }
-                reader.onload = (e) => {
+                try {
+                    const buffer = await file.slice(offset, offset + chunkSize).arrayBuffer();
                     if (window.transferCancelled) return;
-                    try {
-                        activeConnection.send(e.target.result);
-                        const sentBytes = e.target.result.byteLength || e.target.result.size || 0;
-                        offset += sentBytes;
-                        window.batchBytesSent += sentBytes;
-                        
-                        updateTransferProgress(window.batchBytesSent, window.batchTotalSize);
-                        
-                        if (offset < file.size) {
-                            pump();
-                        } else { 
-                            activeConnection.send(JSON.stringify({ type: 'eof' }));
-                            document.getElementById('transfer-title').innerText = 'Guardando...';
-                            document.getElementById('transfer-size-info').innerText = 'Esperando confirmación...';
-                        }
-                    } catch(err) {
-                        console.error("Fallo enviando WebRTC chunk", err);
+                    if (!activeConnection || !activeConnection.open) return;
+                    activeConnection.send(buffer);
+                    const sentBytes = buffer.byteLength;
+                    offset += sentBytes;
+                    window.batchBytesSent += sentBytes;
+                    
+                    updateTransferProgress(window.batchBytesSent, window.batchTotalSize);
+                    
+                    if (dc && dc.bufferedAmount < BUFFER_LOW_WATER && chunkSize < CHUNK_MAX) {
+                        chunkSize = Math.min(CHUNK_MAX, chunkSize * 2);
                     }
-                };
-                reader.readAsArrayBuffer(file.slice(offset, offset + CHUNK_SIZE));
+                    
+                    if (offset < file.size) {
+                        pump();
+                    } else { 
+                        activeConnection.send(JSON.stringify({ type: 'eof' }));
+                        document.getElementById('transfer-title').innerText = 'Guardando...';
+                        document.getElementById('transfer-size-info').innerText = 'Esperando confirmación...';
+                    }
+                } catch(err) {
+                    console.error("Fallo enviando WebRTC chunk", err);
+                }
             };
             pump();
         }

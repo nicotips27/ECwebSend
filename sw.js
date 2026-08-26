@@ -14,6 +14,7 @@ const APP_SHELL = [
     'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
     'https://cdn.jsdelivr.net/npm/tsparticles-slim@2.0.6/tsparticles.slim.bundle.min.js',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
+    'https://cdn.jsdelivr.net/npm/trystero@0.25.3/+esm',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 ];
 
@@ -36,6 +37,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     if (request.method !== 'GET' || !request.url.startsWith('http')) return;
+
+    if (request.url.includes('api.ipify.org')) {
+        event.respondWith(fetch(request));
+        return;
+    }
 
     if (request.mode === 'navigate') {
         event.respondWith(fetch(request).catch(() => caches.match('./index.html')));
