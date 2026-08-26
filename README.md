@@ -1,41 +1,67 @@
-1. Conexión de Datos: Protocolo WebRTC
-El núcleo de la transferencia de archivos se basa en WebRTC (Web Real-Time Communication), específicamente utilizando el canal RTCDataChannel.
+# ECSend Pro
 
-Transferencia Directa: Una vez establecida la conexión, los archivos viajan directamente del navegador del emisor al navegador del receptor. Esto garantiza máxima velocidad (limitada solo por el ancho de banda de los usuarios) y privacidad.
+Transferencia de archivos P2P (peer-to-peer) entre dispositivos directamente desde el navegador, sin subir nada a ningún servidor. Interfaz móvil oscura con chat privado, escaneo de QR e historial local.
 
-Cifrado de Extremo a Extremo (E2EE): WebRTC implementa de forma nativa cifrado mediante protocolos DTLS (Datagram Transport Layer Security) y SRTP, asegurando que los datos no puedan ser interceptados en tránsito.
+**Demo:** https://nicotips27.github.io/ECwebSend/
 
-Superación de NATs (STUN Servers): Para que dos dispositivos se encuentren en Internet a través de routers y cortafuegos (NAT), el proyecto utiliza servidores STUN públicos de Google y Cloudflare (stun.l.google.com, stun.cloudflare.com). Estos servidores ayudan a los dispositivos a descubrir sus direcciones IP públicas y puertos reales.
+## Cómo funciona
 
-2. Negociación de la Conexión: Señalización con Firebase
-WebRTC requiere un canal externo para que los dos dispositivos intercambien sus metadatos de configuración (ofertas, respuestas y candidatos ICE) antes de conectarse directamente. Este proceso se llama Señalización (Signaling).
+1. **Conectarse:** cada dispositivo genera un código de 6 dígitos (rotativo, se renueva cada 180 s). El otro usuario lo ingresa a mano, escanea el QR o abre el enlace directo (`?connect=XXXXXX`).
+2. **Enviar:** seleccioná archivos desde la galería o el explorador (también drag & drop en PC).
+3. **Recibir:** los archivos llegan a la bandeja de entrada y se descargan automáticamente. Incluye confirmación previa mostrando cantidad y peso total del lote.
 
-Identificación (Código de 6 dígitos): La aplicación genera un código numérico aleatorio único para el dispositivo receptor (myRawCode).
+Además incluye **chat privado en tiempo real** por el mismo túnel P2P.
 
-Base de Datos en Tiempo Real: Utiliza Firebase Firestore para publicar y escuchar las señales. Cuando el emisor introduce el código del receptor, se añade un documento a la colección signals.
+## Arquitectura
 
-Intercambio SDP (Session Description Protocol): 1. El emisor crea una Oferta (Offer) con sus capacidades WebRTC y la sube a Firestore dirigida al código del receptor.
-2. El receptor, que está escuchando en tiempo real mediante onSnapshot, detecta la oferta, la procesa y sube una Respuesta (Answer).
-3. Una vez intercambiadas las respuestas y los candidatos ICE (rutas de red), la conexión P2P se abre y el documento de señalización en Firestore se elimina automáticamente (deleteDoc) para no dejar rastro.
+### 1. Conexión de datos — WebRTC DataChannel
+- Los archivos viajan directo entre navegadores vía `RTCDataChannel`. Nada pasa por servidores intermedios.
+- Cifrado nativo E2E (DTLS/SRTP).
+- Servidores STUN públicos de Google y Twilio para atravesar NATs. El "Modo Local" desactiva STUN y fuerza transferencia solo por LAN.
+- Señalización (intercambio de ofertas/respuestas SDP y candidatos ICE) mediante **PeerJS Cloud**, identificada por el código de 6 dígitos como peer ID (`ecsend-XXXXXX`). No se usa Firebase.
 
-3. Procesamiento y Fragmentación de Archivos (Chunking)
-Dado que los canales de datos WebRTC tienen límites de capacidad por mensaje, la aplicación fragmenta los archivos para su envío seguro en "pedazos" o chunks.
+### 2. Protocolo de transferencia
+- Cabecera JSON (`header`) con nombre, tamaño, MIME e info del lote → fragmentos binarios → marcador `eof`.
+- Chunks de **64 KB** con control de flujo por `bufferedAmount` + evento `bufferedamountlow` (high water 4 MB / low water 1 MB) para no saturar el canal y mantener velocidad máxima estable.
+- Confirmación por archivo (`eof-ack`) antes de enviar el siguiente; el receptor puede rechazar (`transfer-rejected`) o cancelar en curso (`transfer-cancel`).
 
-Lectura Binaria (FileReader): El archivo seleccionado por el usuario se procesa nativamente en el navegador utilizando la API de JavaScript FileReader, leyéndolo como un flujo binario de datos (ArrayBuffer).
+### 3. Frontend
+- Un único `index.html` + `js/app.js` (sin framework ni build).
+- Tailwind CSS (Play CDN), Lucide Icons, QRious (generar QR), html5-qrcode (escanear QR), tsParticles (fondo animado), PeerJS (WebRTC).
+- Configuraciones e historial guardados solo en `localStorage`.
 
-Fragmentación a 64KB: Para evitar saturar el canal de datos de WebRTC, el archivo se divide secuencialmente en fragmentos óptimos de 64 KB. Un temporizador controlado (setTimeout) envía cada fragmento de forma progresiva.
+## PWA instalable
 
-Protocolo de Mensajería Interno: * Paso 1 (Cabecera): Envía un objeto JSON inicial (type: 'header') con el nombre, tamaño y tipo MIME del archivo para preparar al receptor.
+La app es instalable (manifest + service worker con caché offline del shell) y funciona como app independiente en Android/iOS/Chrome/Edge.
 
-Paso 2 (Datos): Envía los fragmentos binarios uno tras otro de forma síncrona mientras se actualiza la barra de progreso en la interfaz.
+## Estructura
 
-Paso 3 (Fin de Archivo): Envía un mensaje de cierre (type: 'eof'). El receptor toma todos los fragmentos acumulados en un array, reconstruye el archivo mediante un objeto Blob, genera una URL local temporal (URL.createObjectURL) y fuerza la descarga automática en el dispositivo receptor.
+```
+├── index.html            Markup de la app
+├── js/app.js             Toda la lógica (UI, WebRTC, chat, QR)
+├── sw.js                 Service worker (caché offline)
+├── manifest.webmanifest  Manifiesto PWA
+├── assets/               Logo e íconos locales
+├── 404.html              Redirect para rutas sueltas en Pages
+└── .nojekyll             Sirve los archivos tal cual en Pages
+```
 
-Arquitectura de la Interfaz (Frontend)
-Toda la aplicación está construida en un único archivo (index.html), estructurada bajo un diseño moderno de tipo aplicación móvil:
+## Desarrollo local
 
-Estilos: Utiliza Tailwind CSS con configuración nativa para modo oscuro (dark), paneles con efecto esmerilado (glassmorphism) y animaciones personalizadas en CSS para el radar de búsqueda.
+```bash
+python -m http.server 8080
+# o
+npx serve .
+```
 
-Vinculación QR: Integra la librería QRious para codificar la URL del dispositivo receptor en un código QR. Si otro usuario escanea este código con su cámara, la URL procesa los parámetros de búsqueda (?connect=XXXXXX) permitiendo un enlace inmediato sin escribir el código a mano.
+Abrir `http://localhost:8080` en dos pestañas/dispositivos de la misma red para probar una transferencia real.
 
-Iconografía: Gestionada mediante Lucide Icons para renderizar componentes gráficos vectoriales limpios y responsivos.
+## Deploy en GitHub Pages
+
+El sitio se publica desde la rama `main` (raíz del repo): **Settings → Pages → Branch: main / root**. Cada push a `main` actualiza el sitio automáticamente.
+
+## Privacidad
+
+- Cero almacenamiento: no hay backend propio; las transferencias no tocan ningún servidor de la app.
+- Historial y ajustes viven únicamente en el dispositivo (`localStorage`).
+- El software se provee "tal cual"; el usuario es responsable de lo que comparte.
