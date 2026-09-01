@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecsend-v5';
+const CACHE_NAME = 'ecsend-v6';
 
 const APP_SHELL = [
     './',

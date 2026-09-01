@@ -352,12 +352,17 @@
 
                     <!-- Campo manual (oculto hasta tocar) -->
                     <div id="manual-code-wrap" class="hidden flex-col gap-2">
-                        <div class="flex gap-2">
-                            <input type="text" inputmode="numeric" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
-                            <button onclick="window.connectToPeer()" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0">
-                                <i data-lucide="link" class="w-5 h-5"></i>
+                        <form onsubmit="event.preventDefault(); window.connectToPeer();" class="flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <input type="text" inputmode="numeric" enterkeyhint="go" id="target-code" placeholder="Ej: 123456" maxlength="6" class="w-full bg-zinc-900/80 border border-zinc-700 rounded-xl px-4 py-3.5 text-white font-mono text-lg text-center tracking-[0.2em] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-zinc-600">
+                                <button type="submit" id="btn-connect" class="bg-primary hover:bg-primary/90 text-white px-5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] active:scale-95 flex items-center justify-center shrink-0" title="Conectar ahora">
+                                    <i data-lucide="link" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95">
+                                <i data-lucide="link-2" class="w-4 h-4"></i> Conectar
                             </button>
-                        </div>
+                        </form>
                         <div class="flex items-center justify-between">
                             <span id="code-counter" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-md font-mono transition-colors">0/6</span>
                             <button onclick="window.toggleManualCode()" class="text-[10px] text-zinc-500 hover:text-red-400 transition-colors">Cancelar</button>
@@ -684,6 +689,6 @@
     </div>
 
 
-    <script src="js/app.js?v=10" defer></script>
+    <script src="js/app.js?v=11" defer></script>
 </body>
 </html>
