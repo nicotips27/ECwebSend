@@ -4,6 +4,14 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.1 — 2026-09-01
+
+### Publicidad
+- **Retirada la publicidad de la vista de inicio**. Solo queda el banner visible durante la pantalla de transferencia (modal).
+- Versionado: `app.js` → `?v=9`, caché del service worker → `ecsend-v4`.
+
+---
+
 ## v8.0 — 2026-09-01
 
 ### Ruta de descarga predeterminada

@@ -162,10 +162,9 @@ room.leave();
 
 ## 10. Publicidad
 
-Banners estáticos que enlazan a `https://estalingradocorp.github.io/EstalingradoCorp/market.html` (`target="_blank"`):
+Banner estático que enlaza a `https://estalingradocorp.github.io/EstalingradoCorp/market.html` (`target="_blank"`):
 
-1. **Vista de inicio**: entre "Mi Código" y "Conectarse a dispositivo".
-2. **Modal de transferencia**: visible mientras se transfieren archivos.
+1. **Modal de transferencia**: visible mientras se transfieren archivos (único banner activo; el de la vista de inicio fue retirado en v8.1).
 
 ---
 
