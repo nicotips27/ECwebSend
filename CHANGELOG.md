@@ -4,6 +4,17 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.3 — 2026-09-01
+
+### Bug detectado: chat P2P (abrir/cerrar)
+- **Síntoma reportado**: al tocar el botón flotante de chat, a veces no se abre; si se abre, en ocasiones no se puede cerrar.
+- **Causa probable (investigada)**: el contenedor `#modal-chat` (en `index.html`) declara a la vez las clases `hidden` y `flex flex-col` en su clase estática. Como ambas utilidades tienen la misma especificidad, gana la que aparezca después en el CSS generado por Tailwind, lo que depende del navegador/orden:
+  - si prevalece `hidden` → el chat no abre;
+  - si prevalece `flex` → el chat queda visible y no se cierra.
+- **Estado**: pendiente de corregir. La solución será eliminar el `flex` estático y gestionar `hidden`/`flex` (u otro método de visibilidad) desde `toggleChat()` en `js/app.js`, de forma consistente con el resto de menús.
+
+---
+
 ## v8.2 — 2026-09-01
 
 ### Vista de inicio: Mi Código + Conectarse en una sola franja
