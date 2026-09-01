@@ -176,6 +176,14 @@
                 if (codeToConnect && codeToConnect.length === 6) {
                     window.stopQRScanner();
                     window.showToast("QR Escaneado", "success");
+                    // Mostrar el campo manual para reflejar el código escaneado
+                    const wrap = document.getElementById('manual-code-wrap');
+                    if (wrap && wrap.classList.contains('hidden')) {
+                        wrap.classList.remove('hidden');
+                        wrap.classList.add('flex');
+                        const btnManual = document.getElementById('btn-manual');
+                        if (btnManual) btnManual.classList.add('hidden');
+                    }
                     document.getElementById('target-code').value = codeToConnect;
                     
                     const counterEl = document.getElementById('code-counter');
@@ -777,6 +785,25 @@
             if (codeVal.length !== 6) return window.showToast('El código debe tener 6 dígitos.', 'error');
             if (codeVal === myRawCode) return window.showToast('No puedes conectarte a ti mismo.', 'error');
             connectToPeerId(PREFIX + codeVal);
+        };
+
+        window.toggleManualCode = function() {
+            const wrap = document.getElementById('manual-code-wrap');
+            const btnManual = document.getElementById('btn-manual');
+            if (!wrap) return;
+            if (wrap.classList.contains('hidden')) {
+                wrap.classList.remove('hidden');
+                wrap.classList.add('flex');
+                if (btnManual) btnManual.classList.add('hidden');
+                setTimeout(() => {
+                    const input = document.getElementById('target-code');
+                    if (input) input.focus();
+                }, 100);
+            } else {
+                wrap.classList.add('hidden');
+                wrap.classList.remove('flex');
+                if (btnManual) btnManual.classList.remove('hidden');
+            }
         };
 
         window.connectToPeerId = (targetPeerId) => {

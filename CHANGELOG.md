@@ -4,6 +4,15 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.2 — 2026-09-01
+
+### Vista de inicio: Mi Código + Conectarse en una sola franja
+- Unificados "Mi Código" y "Conectarse a dispositivo" en un único panel, separados por una línea divisoria.
+- Nuevo botón **"Ingresar Código"**: muestra el campo de ingreso manual del código (el campo queda oculto hasta que se toca). Durante el escaneo de QR, el campo se despliega automáticamente para reflejar el código detectado.
+- Versionado: `app.js` → `?v=10`, caché del service worker → `ecsend-v5`.
+
+---
+
 ## v8.1 — 2026-09-01
 
 ### Publicidad
