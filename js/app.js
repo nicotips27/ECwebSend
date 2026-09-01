@@ -647,7 +647,14 @@
             if(progress < 100) requestAnimationFrame(animateLoader);
             else setTimeout(() => { if(splash) { splash.style.opacity = '0'; setTimeout(() => splash.classList.add('hidden'), 500); } }, 150);
         }
-        requestAnimationFrame(animateLoader);
+requestAnimationFrame(animateLoader);
+        // Seguridad: nunca dejar el splash tapando la pantalla (bloquea clicks)
+        setTimeout(() => {
+            if (splash && !splash.classList.contains('hidden')) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.classList.add('hidden'), 750);
+            }
+        }, 2500);
 
         if (window.QRious) {
             new window.QRious({
@@ -1209,6 +1216,14 @@
             document.getElementById('connection-status-text').innerText = "Conectado. Listo para enviar.";
             
             document.getElementById('btn-floating-chat').classList.add('hidden');
+            
+            // Cerrar el chat al desconectar para evitar estado desincronizado
+            const chatModal = document.getElementById('modal-chat');
+            if (chatModal) {
+                isChatOpen = false;
+                chatModal.classList.add('hidden');
+                chatModal.classList.remove('flex');
+            }
             
             document.getElementById('chat-messages').innerHTML = `
                 <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full text-center opacity-60 mt-4">

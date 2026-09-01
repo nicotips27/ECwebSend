@@ -4,6 +4,19 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.5 — 2026-09-01
+
+### Fix crítico: modales y botones que bloqueaban los clicks
+- **Causa raíz encontrada**: el Play CDN de Tailwind genera `.hidden` y `.flex` con la misma especificidad. En varios elementos (`#modal-help`, `#modal-qr`, `#modal-privacy`, `#modal-scanner`, `#modal-transfer`, `#btn-floating-chat`) ambas clases coexisten en el HTML estático, y **según el orden del CSS podía ganar `display: flex`**, dejando modales "ocultos" **visibles**: tapaban toda la pantalla e interceptaban los clicks.
+- **Síntomas que explica**: chat que no cierra, necesidad de múltiples clicks para abrir, e imposibilidad de tocar los dispositivos de la red.
+- **Solución**: regla global `.hidden { display: none !important; }` en el `<style>` de `index.html`, que garantiza que `hidden` siempre gane sobre `flex` sin importar el orden del CSS.
+- **Robustez adicional**:
+  - Al desconectar, el chat se cierra y su estado se resetea (`isChatOpen = false`) para evitar desincronización.
+  - El splash de carga tiene un tope de seguridad (2.5 s) para no quedar nunca tapando la pantalla.
+- Versionado: `app.js` → `?v=13`, caché del service worker → `ecsend-v8`.
+
+---
+
 ## v8.4 — 2026-09-01
 
 ### Fix: chat P2P no abría / no cerraba

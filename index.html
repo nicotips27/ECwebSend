@@ -59,6 +59,11 @@
             touch-action: pan-y;
         }
 
+        /* FIX CRÍTICO: Tailwind (Play CDN) genera .hidden y .flex con igual especificidad.
+           Según el orden del CSS puede ganar .flex y dejar modales "ocultos" visibles,
+           bloqueando los clicks. Forzamos que .hidden SIEMPRE oculte. */
+        .hidden { display: none !important; }
+
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -689,6 +694,6 @@
     </div>
 
 
-    <script src="js/app.js?v=12" defer></script>
+    <script src="js/app.js?v=13" defer></script>
 </body>
 </html>
