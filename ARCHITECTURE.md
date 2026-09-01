@@ -142,10 +142,15 @@ room.leave();
 
 ## 9. PWA / Service worker (`sw.js`)
 
-- **Caché**: `ecsend-v1`, cache-first para el shell (index, app.js, manifest, assets, CDNs).
-- **Navegación**: network-first con fallback a `index.html` (offline).
+- **Caché**: `ecsend-v2` (se sube la versión para purgar caches viejas al activarse).
+- **Estrategias**:
+  - `index.html` (navegación): **network-first**, con fallback a `index.html` cacheado (offline).
+  - `js/app.js` y `manifest.webmanifest`: **network-first** — siempre baja la última versión online, con fallback a caché offline. Detectados por `pathname` (toleran query strings de cache-busting).
+  - Resto (assets, CDNs, fuentes): **cache-first** con caché en runtime de respuestas exitosas.
+- **Cache-busting**: el `<script>` de `app.js` lleva `?v=N`; aún con una versión vieja del SW instalada, la query distinta falla la coincidencia de caché y fuerza la descarga de red.
 - **Excepción**: `api.ipify.org` se consulta siempre en red (no se cachea la IP).
 - Registro en `js/app.js` (solo en `https` o `localhost`).
+- **Nota de versionado**: al desplegar cambios que rompen compatibilidad con el SW anterior, hay que **subir `CACHE_NAME`** y, si el HTML cambió, **subir `?v=`** del script de `app.js`. La primera carga tras el fix puede requerir un reload extra para que el SW nuevo (`skipWaiting` + `clients.claim`) purgue la caché vieja.
 
 ---
 

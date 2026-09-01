@@ -4,6 +4,17 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v7.2 — 2026-09-01
+
+### Fix: menú roto en GitHub Pages por caché del service worker
+- `3723ec8` **Solución de caché**: el service worker viejo (`ecsend-v1`) servía `app.js` con **cache-first**, mientras el `index.html` nuevo cargaba de la red → el menú (que llama a `toggleSettingsPanel()`) se rompía porque el JS cacheado era viejo.
+  - Caché subida a **`ecsend-v2`** (purga automática de la vieja).
+  - **Network-first** para `app.js` y `manifest.webmanifest` (siempre baja la última versión online, con fallback a caché offline).
+  - **Cache-buster** `?v=7` en el `<script>` de `app.js`: incluso con el SW viejo instalado, la query distinta falla la búsqueda en caché y fuerza descarga de red.
+  - Nota de migración: la primera carga tras el fix puede requerir un reload extra para que el SW v2 tome control y purgue la caché.
+
+---
+
 ## v7.1 — 2026-09-01
 
 ### Menú desplegable y configuración

@@ -131,6 +131,8 @@ git commit -m "mensaje"
 git push origin main
 ```
 
+> **Importante (caché del service worker):** cuando se desarrolle una actualización, además del deploy hay que subir `CACHE_NAME` en `sw.js` (`ecsend-vN`) y, si cambió `app.js`, el `?v=N` de su `<script>` en `index.html`. Si no, los usuarios pueden seguir con el **JS viejo cacheado** mientras el HTML nuevo ya está en producción (rompe la app). Detalles en ARCHITECTURE.md §9.
+
 ---
 
 ## Privacidad
