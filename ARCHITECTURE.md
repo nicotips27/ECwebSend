@@ -135,9 +135,27 @@ room.leave();
 |---|---|
 | `handles` (`downloadDir`) | `FileSystemDirectoryHandle` de la carpeta de descarga personalizada (solo Chromium). Se persiste para reutilizar entre sesiones. |
 
+**Ruta de descarga predeterminada** (`selectDownloadFolder` / `clearDownloadPath`):
+- Usa la **File System Access API** (`showDirectoryPicker`, `mode: 'readwrite'`), **solo Chromium**.
+- El handle se guarda en IndexedDB y se restaura al abrir la app (si el permiso sigue otorgado).
+- En `processIncomingFile`, si hay `downloadDirHandle`, el archivo se escribe directo en la carpeta; si falla o no hay carpeta, cae a la descarga normal del navegador.
+- En Safari/Firefox el botón se oculta y se muestra un aviso de compatibilidad.
+
 ---
 
-## 8. Dependencias (CDN, versiones fijas)
+## 8. Sistema de visibilidad (modales/paneles)
+
+- **Dependencia de Tailwind Play CDN**: las utilidades `.hidden` (`display: none`) y `.flex` (`display: flex`) tienen **la misma especificidad**. Si ambos están presentes en un elemento, el resultado depende del orden del CSS generado (frágil).
+- **Mitigación global**: `index.html` define `.hidden { display: none !important; }`, de modo que `hidden` siempre gana sobre `flex` sin importar el orden del CSS. Esto es crítico para que los modales "ocultos" no queden visibles tapando la pantalla (v8.5).
+- **Patrón de toggle**: los elementos que muestran/ocultan contenido usan las clases `hidden` (oculto) y `flex` (visible) gestionadas desde JS, nunca ambas a la vez en estado estable:
+  - Abrir: `classList.remove('hidden'); classList.add('flex')`.
+  - Cerrar: `classList.add('hidden'); classList.remove('flex')`.
+- **Chat**: `toggleChat()` gestiona `hidden`/`flex` sobre `#modal-chat`. Al desconectar (`resetConnectionUI`) el chat se cierra y resetea `isChatOpen = false` para evitar estado desincronizado.
+- **Splash**: tiene tope de seguridad (2.5 s) que fuerza `hidden` para no quedar nunca tapando la interfaz.
+
+---
+
+## 9. Dependencias (CDN, versiones fijas)
 
 | Librería | Uso | Versión |
 |---|---|---|
@@ -151,9 +169,9 @@ room.leave();
 
 ---
 
-## 9. PWA / Service worker (`sw.js`)
+## 10. PWA / Service worker (`sw.js`)
 
-- **Caché**: `ecsend-v2` (se sube la versión para purgar caches viejas al activarse).
+- **Caché**: `ecsend-v8` (se sube la versión para purgar caches viejas al activarse).
 - **Estrategias**:
   - `index.html` (navegación): **network-first**, con fallback a `index.html` cacheado (offline).
   - `js/app.js` y `manifest.webmanifest`: **network-first** — siempre baja la última versión online, con fallback a caché offline. Detectados por `pathname` (toleran query strings de cache-busting).
@@ -165,7 +183,7 @@ room.leave();
 
 ---
 
-## 10. Publicidad
+## 11. Publicidad
 
 Banner estático que enlaza a `https://estalingradocorp.github.io/EstalingradoCorp/market.html` (`target="_blank"`):
 
@@ -173,8 +191,9 @@ Banner estático que enlaza a `https://estalingradocorp.github.io/EstalingradoCo
 
 ---
 
-## 11. Límites conocidos
+## 12. Límites conocidos
 
 - Los **navegadores no soportan mDNS/multicast** (como LocalSend): el descubrimiento necesita conexión a internet. Los **datos** de archivos sí viajan por LAN cuando es posible.
 - El "Modo Local" sin STUN solo funciona si ambos están en la misma red LAN.
 - En iOS, múltiples descargas simultáneas pueden fallar por restricciones del sistema (la app avisa y recomienda enviar de a uno).
+- **Descubrimiento PC→móvil**: si persiste el fallo en una red específica, suele deberse a NAT/TURN (no resoluble solo con código). Mejorado con redundancia de relays y reanuncios de presencia (v8.4).
