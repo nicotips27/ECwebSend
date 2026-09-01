@@ -714,6 +714,10 @@
                     document.getElementById('status-text').innerText = appSettings.network === 'global' ? "En Línea (Global)" : "En Línea (Wi-Fi Local)";
                     window.updateProBadge('ready');
                     checkURLParams();
+                    // Re-anunciar presencia con el peerId fresco (tras rotación de código o reconexión)
+                    if (window.__sendPresence && discoveryRoom) {
+                        try { window.__sendPresence(presencePayload()); } catch (err) {}
+                    }
                 });
 
                 peer.on('connection', (conn) => {
@@ -763,6 +767,13 @@
                 if (peer && peer.disconnected && !peer.destroyed) {
                     document.getElementById('status-text').innerText = "Despertando...";
                     peer.reconnect();
+                }
+                // Re-anunciar presencia al volver a la pestaña (el navegador pausa timers en segundo plano)
+                if (window.__sendPresence && discoveryRoom) {
+                    try {
+                        window.__sendPresence(presencePayload());
+                        pruneNearby();
+                    } catch (err) {}
                 }
             }
         });
@@ -934,7 +945,7 @@
                 const trystero = await import('https://cdn.jsdelivr.net/npm/trystero@0.25.3/+esm');
                 if (!appSettings.discovery) return;
 
-                discoveryRoom = trystero.joinRoom({ appId: 'ecsend-estalingrado' }, 'ecsend-net-' + netKey);
+                discoveryRoom = trystero.joinRoom({ appId: 'ecsend-estalingrado', relayConfig: { redundancy: 3 } }, 'ecsend-net-' + netKey);
                 const presence = discoveryRoom.makeAction('presence');
                 window.__sendPresence = (payload, target) => {
                     try {
@@ -1523,14 +1534,20 @@
 
         window.toggleChat = () => {
             const modal = document.getElementById('modal-chat');
+            if (!modal) return;
             isChatOpen = !isChatOpen;
             if (isChatOpen) {
                 modal.classList.remove('hidden');
+                modal.classList.add('flex');
                 unreadChatMessages = 0;
                 window.updateChatBadge();
-                setTimeout(() => document.getElementById('chat-input').focus(), 100);
+                setTimeout(() => {
+                    const input = document.getElementById('chat-input');
+                    if (input) input.focus();
+                }, 100);
             } else {
                 modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         };
 

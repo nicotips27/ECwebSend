@@ -53,7 +53,12 @@ PeerJS abstrae el intercambio SDP/ICE. Cada dispositivo es un peer registrado en
 1. Obtener la **IP pública** vía `fetch('https://api.ipify.org?format=json', { cache: 'no-store' })`.
 2. Derivar la **sala** = `ecsend-net-` + primeros 3 octetos de la IP (`a.b.c`). Dos equipos detrás del mismo router → misma sala.
 3. `import('https://cdn.jsdelivr.net/npm/trystero@0.25.3/+esm')` (carga diferida).
-4. `joinRoom({ appId: 'ecsend-estalingrado' }, sala)` y `makeAction('presence')`.
+4. `joinRoom({ appId: 'ecsend-estalingrado', relayConfig: { redundancy: 3 } }, sala)` — 3 relays nostr simultáneos para mayor fiabilidad del descubrimiento en ambas direcciones.
+5. `makeAction('presence')`.
+
+**Reanuncios de presencia**: además del broadcast periódico (cada `PRESENCE_INTERVAL` 30 s), la presencia se re-publica en dos momentos críticos:
+- En `peer.on('open')` (PeerJS): tras rotar el código de 6 dígitos (`refreshMyCode`) o reconectar, se publica con el `peerId` fresco, evitando que los vecinos guarden un ID obsoleto y las conexiones PC→móvil fallen.
+- En `visibilitychange` a `visible`: el navegador pausa los timers en segundo plano (típico en PC); al volver al frente se re-anuncia y se podan dispositivos vencidos (`pruneNearby()`).
 
 ### API Trystero (v0.25.x)
 > La firma cambió respecto a versiones anteriores: `makeAction` devuelve un **objeto** (`{ send, onMessage }`) y `onPeerJoin`/`onPeerLeave` son **propiedades asignables**, no métodos.

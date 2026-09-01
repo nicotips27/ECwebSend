@@ -4,6 +4,19 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.4 — 2026-09-01
+
+### Fix: chat P2P no abría / no cerraba
+- **Corregido** el bug documentado en v8.3: `#modal-chat` declara ahora solo `hidden` + `flex-col` (sin `flex` estático). `toggleChat()` agrega/remueve `flex` junto con `hidden`, eliminando el conflicto de `display` según el orden del CSS de Tailwind.
+
+### Fix: sincronización/discovery PC → móvil en la misma red
+- **Más redundancia de relays** en Trystero (`relayConfig.redundancy: 3`): el descubrimiento se anuncia/escucha sobre más relays nostr simultáneos, reduciendo el fallo asimétrico cuando un dispositivo (PC) no ve al otro (móvil) por un relay caído o lento.
+- **Reanuncio de presencia al reconectar PeerJS** (`peer.on('open')`): si el código de 6 dígitos rotó (180 s) o el peer se reconectó, la presencia se vuelve a publicar con el `peerId` fresco, evitando que los vecinos conserven un ID viejo y la conexión PC→móvil falle.
+- **Reanuncio + poda al volver a la pestaña** (`visibilitychange`): en el PC, el navegador pausa los timers en segundo plano; al volver al frente se re-publica presencia y se limpian dispositivos vencidos.
+- Versionado: `app.js` → `?v=12`, caché del service worker → `ecsend-v7`.
+
+---
+
 ## v8.3 — 2026-09-01
 
 ### Bug detectado: chat P2P (abrir/cerrar)
@@ -11,7 +24,7 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 - **Causa probable (investigada)**: el contenedor `#modal-chat` (en `index.html`) declara a la vez las clases `hidden` y `flex flex-col` en su clase estática. Como ambas utilidades tienen la misma especificidad, gana la que aparezca después en el CSS generado por Tailwind, lo que depende del navegador/orden:
   - si prevalece `hidden` → el chat no abre;
   - si prevalece `flex` → el chat queda visible y no se cierra.
-- **Estado**: pendiente de corregir. La solución será eliminar el `flex` estático y gestionar `hidden`/`flex` (u otro método de visibilidad) desde `toggleChat()` en `js/app.js`, de forma consistente con el resto de menús.
+- **Estado**: corregido en v8.4 — se eliminó el `flex` estático del contenedor y `toggleChat()` gestiona `hidden`/`flex` de forma consistente.
 
 ---
 
