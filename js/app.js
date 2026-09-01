@@ -102,9 +102,18 @@
             if (menu.classList.contains('hidden')) {
                 menu.classList.remove('hidden');
                 menu.classList.add('flex');
+                menu.classList.remove('menu-anim-out');
+                void menu.offsetWidth;
+                menu.classList.add('menu-anim-in');
             } else {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
+                menu.classList.remove('menu-anim-in');
+                menu.classList.add('menu-anim-out');
+                setTimeout(() => {
+                    if (!menu.classList.contains('menu-anim-in')) {
+                        menu.classList.add('hidden');
+                        menu.classList.remove('flex', 'menu-anim-out');
+                    }
+                }, 160);
             }
         };
 
@@ -116,11 +125,20 @@
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
                 panel.classList.add('flex');
+                panel.classList.remove('panel-anim-out');
+                void panel.offsetWidth;
+                panel.classList.add('panel-anim-in');
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
             } else {
-                panel.classList.add('hidden');
-                panel.classList.remove('flex');
+                panel.classList.remove('panel-anim-in');
+                panel.classList.add('panel-anim-out');
                 if (chevron) chevron.style.transform = '';
+                setTimeout(() => {
+                    if (!panel.classList.contains('panel-anim-in')) {
+                        panel.classList.add('hidden');
+                        panel.classList.remove('flex', 'panel-anim-out');
+                    }
+                }, 140);
             }
         };
 
@@ -128,8 +146,7 @@
         document.addEventListener('click', function(event) {
             const menu = document.getElementById('main-menu-dropdown');
             if (menu && !menu.classList.contains('hidden') && !menu.contains(event.target)) {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
+                window.toggleMainMenu();
             }
         });
 
@@ -272,6 +289,8 @@
             if (btnText.includes('¿Estás seguro?')) {
                 localStorage.removeItem('ecsend_settings');
                 localStorage.removeItem('ecsend_history');
+                removeDirectoryHandle();
+                downloadDirHandle = null;
                 window.showToast('Datos eliminados. Reiniciando...', 'success');
                 setTimeout(() => window.location.reload(), 1500);
             } else {
@@ -485,6 +504,106 @@
                 }
             });
         }
+
+        // --- PERSISTENCIA DE CARPETA DE DESCARGA (IndexedDB) ---
+        const DB_NAME = 'ecsend-download-db';
+        const DB_STORE = 'handles';
+        const DB_KEY = 'downloadDir';
+        let downloadDirHandle = null;
+
+        function openDownloadDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function saveDirectoryHandle(handle) {
+            const db = await openDownloadDB();
+            const tx = db.transaction(DB_STORE, 'readwrite');
+            tx.objectStore(DB_STORE).put(handle, DB_KEY);
+            return new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+        }
+
+        async function loadDirectoryHandle() {
+            try {
+                const db = await openDownloadDB();
+                const tx = db.transaction(DB_STORE, 'readonly');
+                const req = tx.objectStore(DB_STORE).get(DB_KEY);
+                return new Promise((resolve) => { req.onsuccess = () => resolve(req.result || null); req.onerror = () => resolve(null); });
+            } catch { return null; }
+        }
+
+        async function removeDirectoryHandle() {
+            try {
+                const db = await openDownloadDB();
+                const tx = db.transaction(DB_STORE, 'readwrite');
+                tx.objectStore(DB_STORE).delete(DB_KEY);
+            } catch {}
+        }
+
+        function updateDownloadPathUI() {
+            const display = document.getElementById('download-path-display');
+            const clearBtn = document.getElementById('btn-clear-download-path');
+            const warnEl = document.getElementById('download-path-warning');
+            const selectBtn = document.getElementById('btn-select-folder');
+            const isSupported = 'showDirectoryPicker' in window;
+
+            if (!isSupported) {
+                if (warnEl) warnEl.classList.remove('hidden');
+                if (selectBtn) selectBtn.classList.add('hidden');
+                if (display) { display.innerText = 'No compatible con este navegador'; display.classList.replace('text-white', 'text-zinc-400'); }
+                return;
+            }
+            if (warnEl) warnEl.classList.add('hidden');
+            if (selectBtn) selectBtn.classList.remove('hidden');
+
+            if (downloadDirHandle) {
+                display.innerText = downloadDirHandle.name;
+                display.classList.replace('text-zinc-400', 'text-white');
+                if (clearBtn) clearBtn.classList.remove('hidden');
+            } else {
+                display.innerText = 'Descarga predeterminada del navegador';
+                display.classList.replace('text-white', 'text-zinc-400');
+                if (clearBtn) clearBtn.classList.add('hidden');
+            }
+        }
+
+        window.selectDownloadFolder = async function() {
+            if (!('showDirectoryPicker' in window)) {
+                window.showToast('Tu navegador no soporta carpetas personalizadas', 'error');
+                return;
+            }
+            try {
+                downloadDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                await saveDirectoryHandle(downloadDirHandle);
+                updateDownloadPathUI();
+                window.showToast('Carpeta de descarga configurada', 'success');
+            } catch (err) {
+                if (err.name !== 'AbortError') window.showToast('Error al seleccionar carpeta', 'error');
+            }
+        };
+
+        window.clearDownloadPath = async function() {
+            downloadDirHandle = null;
+            await removeDirectoryHandle();
+            updateDownloadPathUI();
+            window.showToast('Usando descarga predeterminada', 'info');
+        };
+
+        (async () => {
+            try {
+                const savedHandle = await loadDirectoryHandle();
+                if (savedHandle) {
+                    const perm = await savedHandle.requestPermission({ mode: 'readwrite' });
+                    if (perm === 'granted') downloadDirHandle = savedHandle;
+                    else await removeDirectoryHandle();
+                }
+            } catch { await removeDirectoryHandle(); }
+            updateDownloadPathUI();
+        })();
 
         // --- VARIABLES GLOBALES DE WEBRTC ---
         if (window.lucide) window.lucide.createIcons();
@@ -1296,7 +1415,7 @@
             document.getElementById('transfer-size-info').innerText = `${(current/(1024*1024)).toFixed(1)} MB / ${(total/(1024*1024)).toFixed(1)} MB`;
         }
 
-        function processIncomingFile() {
+        async function processIncomingFile() {
             playBeep('receive');
             const safeMime = /^[\w.+-]+\/[\w.+-]+$/.test(incomingFileInfo.mime || '') ? incomingFileInfo.mime : 'application/octet-stream';
             const blob = new Blob(incomingData, { type: safeMime });
@@ -1310,7 +1429,6 @@
             document.getElementById('empty-received').classList.add('hidden');
             const list = document.getElementById('list-received');
             
-            // Insertamos de manera segura para evitar repintar los íconos antiguos
             const newItemHtml = `
                 <li class="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50 border border-white/5 animate-slide-up">
                     <div class="flex items-center gap-3 overflow-hidden">
@@ -1326,7 +1444,20 @@
             list.insertAdjacentHTML('afterbegin', newItemHtml);
             if (window.lucide) window.lucide.createIcons();
 
-            const a = document.createElement('a'); a.href = url; a.download = safeName; a.click();
+            if (downloadDirHandle) {
+                try {
+                    const fileHandle = await downloadDirHandle.getFileHandle(safeName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    window.showToast(`Guardado en ${downloadDirHandle.name}/${safeName}`, 'success');
+                } catch (err) {
+                    console.warn('Error guardando en carpeta personalizada:', err);
+                    const a = document.createElement('a'); a.href = url; a.download = safeName; a.click();
+                }
+            } else {
+                const a = document.createElement('a'); a.href = url; a.download = safeName; a.click();
+            }
             
             window.addHistoryItem('receive', incomingFileInfo.name, incomingFileInfo.size);
         }
@@ -1539,7 +1670,7 @@
                 opacity: { value: 0.5 }
             },
             interactivity: {
-                detectsOn: "window",
+                detectsOn: "canvas",
                 events: { onHover: { enable: true, mode: "grab" }, resize: true },
                 modes: { grab: { distance: 140, links: { opacity: 0.8 } } }
             },

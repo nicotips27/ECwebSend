@@ -124,6 +124,12 @@ room.leave();
 | `ecsend_settings` | `username`, `network`, `sounds`, `dynamicBg`, `ecEncripP2P`, `discovery` |
 | `ecsend_history` | Historial de transferencias (últimos 20) |
 
+**IndexedDB** (`ecsend-download-db`):
+
+| Store | Contenido |
+|---|---|
+| `handles` (`downloadDir`) | `FileSystemDirectoryHandle` de la carpeta de descarga personalizada (solo Chromium). Se persiste para reutilizar entre sesiones. |
+
 ---
 
 ## 8. Dependencias (CDN, versiones fijas)

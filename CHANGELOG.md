@@ -4,6 +4,23 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v8.0 — 2026-09-01
+
+### Ruta de descarga predeterminada
+- Nueva opción en Ajustes → "Ruta de Descarga": el usuario selecciona una carpeta (File System Access API, solo Chromium) donde se guardan automáticamente los archivos recibidos.
+- El handle de la carpeta se persiste en IndexedDB (`ecsend-download-db`) y se restaura al volver a abrir la app.
+- En Safari/Firefox se muestra un aviso de compatibilidad y se continúa con la descarga predeterminada del navegador.
+
+### UI y efectos
+- **Historial Reciente** movido de la pestaña INICIAR a la pestaña RECIBIR (debajo de "Archivos Recibidos").
+- **Fix clicks en navegación**: las partículas ya no bloquean los botones INICIAR/RECIBIR/ENVIAR ni Ajustes (`detectsOn: "canvas"` en tsParticles).
+- **Animaciones de menú refinadas**: apertura/cierre suaves del menú principal y del panel de Ajustes (escala + deslizamiento con easings suaves), sin cortes bruscos.
+
+### Versionado
+- `app.js` → `?v=8`, caché del service worker → `ecsend-v3`.
+
+---
+
 ## v7.2 — 2026-09-01
 
 ### Fix: menú roto en GitHub Pages por caché del service worker
