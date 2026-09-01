@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecsend-v1';
+const CACHE_NAME = 'ecsend-v2';
 
 const APP_SHELL = [
     './',
@@ -45,6 +45,21 @@ self.addEventListener('fetch', (event) => {
 
     if (request.mode === 'navigate') {
         event.respondWith(fetch(request).catch(() => caches.match('./index.html')));
+        return;
+    }
+
+    const urlPath = new URL(request.url).pathname;
+    const isShellFile = urlPath.endsWith('/js/app.js') || urlPath.endsWith('/manifest.webmanifest');
+    if (isShellFile) {
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    const copy = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+                    return response;
+                })
+                .catch(() => caches.match(request))
+        );
         return;
     }
 
