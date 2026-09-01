@@ -4,7 +4,7 @@
         const sanitizeFilename = (name) => (String(name ?? '').replace(/[\\/:*?"<>|\r\n]+/g, '_').trim().slice(0, 180) || 'archivo');
 
         window.switchView = function(targetView) {
-            const views = ['start', 'receive', 'send', 'settings'];
+            const views = ['start', 'receive', 'send'];
             views.forEach(view => {
                 const section = document.getElementById(`view-${view}`);
                 const navBtn = document.getElementById(`nav-${view}`);
@@ -105,6 +105,22 @@
             } else {
                 menu.classList.add('hidden');
                 menu.classList.remove('flex');
+            }
+        };
+
+        window.toggleSettingsPanel = function(event) {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById('settings-panel');
+            const chevron = document.getElementById('settings-chevron');
+            if (!panel) return;
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                panel.classList.add('flex');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                panel.classList.add('hidden');
+                panel.classList.remove('flex');
+                if (chevron) chevron.style.transform = '';
             }
         };
 
