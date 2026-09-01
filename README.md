@@ -30,6 +30,18 @@ Transferencia de archivos P2P (peer-to-peer) entre dispositivos directamente des
 
 ---
 
+## Menú desplegable
+
+Al tocar el logo (arriba a la izquierda) se abre el menú principal con:
+
+- **Ajustes** — submenú expandible con todos los ajustes de la app.
+- **Tráfico en tiempo real (Big-Data)** — abre en pestaña nueva.
+- **Saber más** — enlaza a EstalingradoCorp en pestaña nueva.
+
+La barra de navegación inferior solo muestra **INICIAR / RECIBIR / ENVIAR**.
+
+---
+
 ## Publicidad
 
 La app muestra banners publicitarios de **Estalingrado Market** que al hacer click abren `https://estalingradocorp.github.io/EstalingradoCorp/market.html` en una pestaña nueva:
@@ -45,7 +57,7 @@ Ambos usan `target="_blank" rel="noopener nofollow"`.
 
 ## Configuración
 
-Todo se guarda en `localStorage` (clave `ecsend_settings`):
+Todos los ajustes se acceden desde el menú desplegable del logo (opción **Ajustes**, expandible). Todo se guarda en `localStorage` (clave `ecsend_settings`):
 
 | Ajuste | Descripción | Clave |
 |---|---|---|
@@ -84,12 +96,14 @@ Instalable gracias al manifest + service worker con caché offline del shell. Fu
 ## Estructura
 
 ```
-├── index.html            Markup de la app (vistas, modales, publicidad)
-├── js/app.js             Toda la lógica (UI, WebRTC, chat, QR, descubrimiento)
+├── index.html            Markup de la app (vistas, modales, menú con submenú de ajustes, publicidad)
+├── js/app.js             Toda la lógica (UI, WebRTC, chat, QR, descubrimiento, menú)
 ├── sw.js                 Service worker (caché offline)
 ├── manifest.webmanifest  Manifiesto PWA
 ├── assets/               Logo e íconos locales
 ├── 404.html              Redirect para rutas sueltas en Pages
+├── ARCHITECTURE.md       Documentación técnica
+├── CHANGELOG.md          Historial de versiones
 └── .nojekyll             Sirve los archivos tal cual en Pages
 ```
 

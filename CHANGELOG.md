@@ -4,6 +4,15 @@ Todos los cambios notables de ECSend Pro se documentan aquí.
 
 ---
 
+## v7.1 — 2026-09-01
+
+### Menú desplegable y configuración
+- `9ff3045` **Convertir Ajustes en submenú desplegable**: eliminada la página de configuración (que abría vacía); todos los ajustes ahora viven en un panel expandible dentro del menú del logo (con scroll y flecha giratoria).
+- `93d5aa5` **Mover Ajustes al menú desplegable**: agregada la opción Ajustes en el menú del logo y eliminado el botón AJUSTES de la barra de navegación inferior (queda INICIAR / RECIBIR / ENVIAR).
+- `c6cc5f1` **Actualizar menú desplegable**: quitadas las opciones Buscador, ECDownload y EC News. "Tráfico en tiempo real" y "Saber más" abren en pestaña nueva; "Saber más" enlaza a EstalingradoCorp.
+
+---
+
 ## v7.0 — 2026-09-01
 
 ### Publicidad (últimos cambios)
